@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Save, Cpu, Database, Zap } from 'lucide-react';
+import { Plus, Save, Cpu, Database, Zap, FileText, FolderOpen } from 'lucide-react';
 import { Cell } from '../Cell/Cell';
 import type { Notebook as NotebookType, Cell as CellType } from '../../types/notebook';
 import { client } from '../../lib/rpc';
@@ -7,9 +7,10 @@ import { client } from '../../lib/rpc';
 interface NotebookProps {
   notebook: NotebookType;
   onNotebookChange: (notebook: NotebookType) => void;
+  onNewNotebook?: () => void;
 }
 
-export function Notebook({ notebook, onNotebookChange }: NotebookProps) {
+export function Notebook({ notebook, onNotebookChange, onNewNotebook }: NotebookProps) {
   const [isExecuting, setIsExecuting] = useState(false);
   const [apiCalls, setApiCalls] = useState(0);
   const [memoryUsage, setMemoryUsage] = useState('12.4MB');
@@ -57,6 +58,22 @@ export function Notebook({ notebook, onNotebookChange }: NotebookProps) {
       index === cellIndex ? { ...cell, ...updates } : cell
     );
 
+    onNotebookChange({
+      ...notebook,
+      cells: updatedCells,
+      updatedAt: new Date().toISOString()
+    });
+  };
+
+  const deleteCell = (cellIndex: number) => {
+    if (notebook.cells.length <= 1) {
+      // Don't delete the last cell, just clear its content
+      updateCell(cellIndex, { content: '', outputs: [], status: 'idle' });
+      return;
+    }
+
+    const updatedCells = notebook.cells.filter((_, index) => index !== cellIndex);
+    
     onNotebookChange({
       ...notebook,
       cells: updatedCells,
@@ -325,6 +342,33 @@ export function Notebook({ notebook, onNotebookChange }: NotebookProps) {
 
   return (
     <div className="notebook-container">
+      {/* Top Navigation */}
+      <div className="top-navigation">
+        <div className="nav-section">
+          <div className="nav-brand">
+            <FileText size={16} />
+            <span className="nav-title">BROWSER JUPYTER NOTEBOOK</span>
+          </div>
+        </div>
+        
+        <div className="nav-section">
+          {onNewNotebook && (
+            <button onClick={onNewNotebook} className="nav-button">
+              <Plus size={12} className="inline mr-1" />
+              NEW NOTEBOOK
+            </button>
+          )}
+          <button className="nav-button">
+            <FolderOpen size={12} className="inline mr-1" />
+            OPEN
+          </button>
+          <button onClick={saveNotebook} className="nav-button">
+            <Save size={12} className="inline mr-1" />
+            SAVE
+          </button>
+        </div>
+      </div>
+
       {/* Notebook Header */}
       <div className="notebook-header">
         <div className="notebook-title">
@@ -380,6 +424,7 @@ export function Notebook({ notebook, onNotebookChange }: NotebookProps) {
           onContentChange={(content) => updateCell(index, { content })}
           onRun={() => runCell(index)}
           onTypeChange={(type) => updateCell(index, { type })}
+          onDelete={() => deleteCell(index)}
         />
       ))}
 

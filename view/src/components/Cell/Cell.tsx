@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Square } from 'lucide-react';
+import { Play, Square, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { Cell as CellType } from '../../types/notebook';
 
@@ -9,9 +9,10 @@ interface CellProps {
   onContentChange: (content: string) => void;
   onRun: () => void;
   onTypeChange: (type: 'markdown' | 'javascript') => void;
+  onDelete: () => void;
 }
 
-export function Cell({ cell, cellIndex, onContentChange, onRun, onTypeChange }: CellProps) {
+export function Cell({ cell, cellIndex, onContentChange, onRun, onTypeChange, onDelete }: CellProps) {
   const [isEditing, setIsEditing] = useState(true);
   const [renderMode, setRenderMode] = useState<'edit' | 'preview' | 'output'>('edit');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -118,6 +119,15 @@ export function Cell({ cell, cellIndex, onContentChange, onRun, onTypeChange }: 
               RUN
             </>
           )}
+        </button>
+
+        <button
+          onClick={onDelete}
+          className="delete-button"
+          title="Delete cell"
+        >
+          <Trash2 size={10} className="inline mr-1" />
+          DELETE
         </button>
       </div>
 

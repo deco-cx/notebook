@@ -37,7 +37,35 @@ export function App() {
     setNotebook(updatedNotebook);
   };
 
+  const handleNewNotebook = () => {
+    const newNotebook: NotebookType = {
+      id: `notebook_${Date.now()}`,
+      path: `/2025/jan/27/notebook_${Date.now()}.json`,
+      cells: [
+        {
+          id: 'cell_new',
+          type: 'markdown',
+          content: '# New Notebook\n\nStart writing your notebook here...',
+          status: 'idle'
+        }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    setNotebook(newNotebook);
+    
+    // Clear localStorage to start fresh
+    localStorage.removeItem('notebook');
+  };
+
   console.log('APP_RENDER: notebook has', notebook.cells.length, 'cells');
 
-  return <Notebook notebook={notebook} onNotebookChange={handleNotebookChange} />;
+  return (
+    <Notebook 
+      notebook={notebook} 
+      onNotebookChange={handleNotebookChange}
+      onNewNotebook={handleNewNotebook}
+    />
+  );
 }
