@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "studio": {
+      "type": "http",
+      "url": "https://localhost-e222ea07.deco.host/mcp"
+    }
+  }
+}
