@@ -68,7 +68,7 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
           <select
             value={view.selectedViewId}
             onChange={(e) => view.handleViewChange(e.target.value)}
-            className="bg-transparent text-xs border border-gray-600 px-2 py-1 text-white ml-2"
+            className="text-xs ml-2 cell-select"
           >
             {view.compatibleViews.map(viewOption => (
               <option key={viewOption.id} value={viewOption.id}>
