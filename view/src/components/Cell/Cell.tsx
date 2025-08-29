@@ -102,8 +102,14 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
       {/* Cell Header */}
       <div className="cell-header">
         <span className="cell-id">CELL_{cellIndex.toString().padStart(3, '0')}</span>
+        <span className="ml-2 text-xs text-gray-400">ID:{cell.id}</span>
         <span className="cell-type">[{cell.type.toUpperCase()}]</span>
         <span className={`status-indicator ${getStatusColor()}`}></span>
+        {cell.omitOutputToAi && (
+          <span className="ml-2 px-2 py-0.5 text-[10px] rounded bg-yellow-700 text-yellow-200">
+            AI OUTPUT OMITTED
+          </span>
+        )}
         
         {/* Type switcher */}
         <select 
@@ -264,7 +270,7 @@ Describe what you want to do and run this cell to generate code."
         )}
 
         {/* Always show outputs if available */}
-        {renderMode === 'output' && cell.outputs && cell.outputs.length > 0 && (
+        {cell.outputs && cell.outputs.length > 0 && (
           <div className="output-container">
             <div className="output-header">
               OUTPUT_BUFFER [{new Date().toLocaleTimeString()}]

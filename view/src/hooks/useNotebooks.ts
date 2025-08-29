@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Notebook as NotebookType } from '../types/notebook';
+import { genId } from '../lib/utils';
 
 interface UseNotebooksReturn {
   currentNotebook: NotebookType;
@@ -61,14 +62,15 @@ export function useNotebooks(): UseNotebooksReturn {
     path: '/2025/jan/27/index.json',
     cells: [
       {
-        id: 'cell_welcome',
+        id: genId(6),
         type: 'markdown' as const,
         content: '# Welcome to Browser Jupyter Notebook\n\nThis is a proof-of-concept notebook that runs entirely in your browser and can call Deco workspace tools.\n\n**Try this:**\n1. Run this cell to generate some JavaScript code\n2. Edit the generated code and run it\n3. Add new cells using the buttons below',
         status: 'idle' as const
       }
     ],
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
+    settings: { outputMaxSize: 6000 }
   });
 
   // Initialize notebooks on mount
@@ -111,14 +113,15 @@ export function useNotebooks(): UseNotebooksReturn {
       path: `/2025/jan/27/notebook_${Date.now()}.json`,
       cells: [
         {
-          id: 'cell_new',
+          id: genId(6),
           type: 'markdown',
           content: '# New Notebook\n\nStart writing your notebook here...',
           status: 'idle'
         }
       ],
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      settings: { outputMaxSize: 6000 }
     };
 
     const updatedNotebooks = {

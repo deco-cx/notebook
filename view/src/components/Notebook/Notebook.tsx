@@ -3,6 +3,7 @@ import { Plus, Save, Cpu, Database, Zap, FileText, FolderOpen } from 'lucide-rea
 import { Cell as CellComponent } from '../Cell/Cell';
 import type { Notebook as NotebookType, Cell as CellInterface, CellType } from '../../types/notebook';
 import { client } from '../../lib/rpc';
+import { genId } from '../../lib/utils';
 import { getDefaultView } from '../../utils/availableViews';
 
 interface NotebookProps {
@@ -25,7 +26,7 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook, onOpenNote
 
   const addCell = (type: CellType = 'markdown', content: string = '') => {
     const newCell: CellInterface = {
-      id: `cell_${Date.now()}`,
+      id: genId(6),
       type,
       content,
       status: 'idle',
@@ -87,11 +88,19 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook, onOpenNote
         // Run markdown cell through AI to generate new cells
         console.log('RUNNING_MARKDOWN_CELL:', cellIndex);
         
+        const max = notebook.settings?.outputMaxSize ?? 6000;
         const result = await client.RUN_CELL({
           notebook: {
             cells: notebook.cells.map(c => ({
+              id: c.id,
               type: c.type,
-              content: c.content
+              content: c.content,
+              omitOutputToAi: c.omitOutputToAi,
+              outputs: c.omitOutputToAi ? undefined : (c.outputs?.map(o => {
+                const serialized = typeof o.content === 'string' ? o.content : JSON.stringify(o.content ?? null);
+                const safe = (serialized ?? '').slice(0, max);
+                return { type: o.type, content: safe };
+              }) ?? undefined)
             }))
           },
           cellToRun: cellIndex
@@ -108,7 +117,7 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook, onOpenNote
           
           // Add the generated cells after the current cell
           const newCells = result.cellsToAdd.map((cellData: any) => ({
-            id: `cell_${Date.now()}_${Math.random()}`,
+            id: genId(6),
             type: cellData.type,
             content: cellData.content,
             status: 'idle' as const
@@ -162,13 +171,26 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook, onOpenNote
         
         const result = await executeJavaScript(cell.content);
         
+        const max = notebook.settings?.outputMaxSize ?? 6000;
+        const outStr = result.success ? (JSON.stringify(result.output) ?? '') : String(result.error ?? '');
+        const tooLarge = outStr.length > max;
+        // Build a visual output block immediately under the cell
+        const visualOutput = result.success ? `Return value: ${outStr}` : `Error: ${String(result.error ?? '')}`;
+        
         updateCell(cellIndex, {
           status: result.success ? 'success' : 'error',
           executionTime: Date.now() - startTime,
-          outputs: [{
-            type: result.success ? 'json' : 'error',
-            content: result.success ? result.output : result.error
-          }]
+          outputs: [
+            {
+              type: 'text',
+              content: visualOutput,
+            },
+            {
+              type: result.success ? 'json' : 'error',
+              content: result.success ? result.output : result.error
+            }
+          ],
+          omitOutputToAi: tooLarge ? true : undefined
         });
         
         if (result.apiCalls) {
@@ -194,7 +216,7 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook, onOpenNote
   const executeJavaScript = async (code: string) => {
     try {
       // Create execution environment with env global
-      const env = createExecutionEnvironment();
+      const env = createExecutionEnvironment(notebook);
       let apiCallCount = 0;
       
       // Wrap env methods to count API calls
@@ -240,8 +262,23 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook, onOpenNote
     }
   };
 
-  const createExecutionEnvironment = () => {
+  const createExecutionEnvironment = (nb: NotebookType) => {
     return {
+      getCellOutput: (cellId: string) => {
+        const cell = nb.cells.find(c => c.id === cellId);
+        if (!cell?.outputs || cell.outputs.length === 0) return undefined;
+        const rev = [...cell.outputs].reverse();
+        const jsonOut = rev.find(o => o.type === 'json');
+        if (jsonOut) {
+          const val = jsonOut.content as any;
+          if (typeof val === 'string') {
+            try { return JSON.parse(val); } catch { return val; }
+          }
+          return val;
+        }
+        const textOut = rev.find(o => o.type === 'text' || o.type === 'html');
+        return textOut?.content as any;
+      },
       DATABASES: {
         RUN_SQL: async (params: any) => {
           console.log('CALLING DATABASES.RUN_SQL:', params);
@@ -464,7 +501,45 @@ function AddCellMenu({ onAddCell }: { onAddCell: (cell: { type: CellType; conten
     {
       type: 'excalidraw',
       label: 'Drawing (Excalidraw)',
-      example: '{"elements":[],"appState":{"gridSize":null,"viewBackgroundColor":"#ffffff"}}'
+      example: JSON.stringify({
+        elements: [
+          {
+            id: "welcome-text",
+            type: "text",
+            x: 100,
+            y: 100,
+            width: 300,
+            height: 50,
+            text: "Welcome to Excalidraw!\n✏️ Start drawing or select this text",
+            fontSize: 20,
+            fontFamily: 1,
+            textAlign: "left",
+            verticalAlign: "top",
+            strokeColor: "#ff6b35",
+            backgroundColor: "transparent",
+            fillStyle: "solid",
+            strokeWidth: 1,
+            strokeStyle: "solid",
+            roughness: 1,
+            opacity: 100,
+            angle: 0,
+            groupIds: [],
+            frameId: null,
+            roundness: null,
+            seed: Math.floor(Math.random() * 1000000),
+            versionNonce: Math.floor(Math.random() * 1000000),
+            isDeleted: false,
+            boundElements: null,
+            updated: Date.now(),
+            link: null,
+            locked: false,
+          }
+        ],
+        appState: {
+          viewBackgroundColor: "#1a1a1a",
+          gridSize: null
+        }
+      }, null, 2)
     },
     {
       type: 'workflow',
@@ -474,7 +549,35 @@ function AddCellMenu({ onAddCell }: { onAddCell: (cell: { type: CellType; conten
     {
       type: 'html',
       label: 'HTML Preview',
-      example: '<!DOCTYPE html>\n<html>\n<body>\n  <h1>Hello HTML!</h1>\n  <p>This renders in an iframe</p>\n</body>\n</html>'
+      example: `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    h1 {
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .card {
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+    }
+  </style>
+</head>
+<body>
+  <h1>Hello HTML!</h1>
+  <div class="card">
+    <p>This is a fully rendered HTML preview with CSS styling!</p>
+    <button onclick="alert('JavaScript works!')">Click me!</button>
+  </div>
+</body>
+</html>`
     },
     {
       type: 'json',

@@ -3,9 +3,9 @@ import type { ViewApp, CellType } from '../types/notebook';
 import { TipTapView } from '../components/Views/TipTapView';
 import { MonacoView } from '../components/Views/MonacoView';
 import { IframeView } from '../components/Views/IframeView';
+import { ExcalidrawView } from '../components/Views/ExcalidrawView';
 
 // Placeholder components - will be implemented in later phases
-const ExcalidrawView = () => React.createElement('div', null, 'Excalidraw View - Coming Soon');
 const WorkflowView = () => React.createElement('div', null, 'Workflow View - Coming Soon');
 
 export const AVAILABLE_VIEWS: ViewApp[] = [
@@ -20,7 +20,7 @@ export const AVAILABLE_VIEWS: ViewApp[] = [
       fullscreenCapable: true,
       hasToolbar: true,
       canEdit: true,
-      canExecute: false
+      canExecute: true
     }
   },
   {

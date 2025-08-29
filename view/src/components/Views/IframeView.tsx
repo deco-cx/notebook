@@ -1,27 +1,18 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import type { ViewProps } from '../../types/notebook';
 
 export function IframeView({ cell, isFullscreen }: ViewProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  useEffect(() => {
-    if (iframeRef.current) {
-      const doc = iframeRef.current.contentDocument;
-      if (doc) {
-        doc.open();
-        doc.write(cell.content);
-        doc.close();
-      }
-    }
-  }, [cell.content]);
-
+  // Use srcdoc for better compatibility and security
   return (
-    <div className={`iframe-view ${isFullscreen ? 'h-screen' : 'h-64'}`}>
+    <div className={`iframe-view ${isFullscreen ? 'h-full p-4' : 'h-64'}`}>
       <iframe
-        ref={iframeRef}
-        className="w-full h-full border border-gray-600 rounded bg-white"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        srcDoc={cell.content}
+        className="w-full h-full border-2 border-gray-600 rounded bg-white"
+        sandbox="allow-scripts"
         title="HTML Preview"
+        style={{
+          minHeight: isFullscreen ? 'calc(100vh - 4rem)' : '250px',
+        }}
       />
     </div>
   );

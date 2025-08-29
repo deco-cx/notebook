@@ -18,6 +18,9 @@ development history in the [`.specstory/`](.specstory/) folder.
 - **📊 Rich Visualizations**: Support for charts, diagrams, and interactive content through specialized view apps
 - **🎨 Extensible Views**: Plugin system for custom cell renderers and editors (Monaco, TipTap, Excalidraw)
 - **⚡ Real-time Execution**: Live code execution with output capture and error handling
+- **↩️ JS Return Capture & Chaining**: JavaScript cells return values that are captured and displayed; reuse outputs via `env.getCellOutput("<id>")`
+- **🧠 Markdown → AI → Code**: Run Markdown cells to generate executable JavaScript with AI, using full-notebook context
+- **📏 Smart Output Omission**: Large outputs are flagged with `omitOutputToAi` to avoid sending oversized data to AI (configurable)
 - **🗄️ Persistent Storage**: SQLite-based storage for notebooks, cells, and execution history
 - **☁️ Cloud-Native**: Built on Cloudflare Workers with edge deployment capabilities
 
@@ -84,7 +87,7 @@ Deco Studio uses a sophisticated architecture that combines notebook management,
 
 ### Cell Types & Execution
 - **JavaScript/Python**: Code cells with live execution and output capture
-- **Markdown**: Rich text editing with TipTap editor
+- **Markdown**: Rich text editing with TipTap editor and executable via AI (RUN generates JS)
 - **HTML/JSON**: Structured content with syntax highlighting
 - **Excalidraw**: Interactive diagram and drawing capabilities
 - **Workflow**: MCP workflow integration for AI-powered automation
@@ -102,15 +105,64 @@ const monacoView: ViewApp = {
 };
 ```
 
+### Notebook Execution Model (New)
+
+- Every JavaScript cell should end with a `return` statement. The returned value is:
+  - Captured as a structured output (`json`), and
+  - Also presented as a human-readable line (e.g., `Return value: 42`) directly below the cell.
+- Outputs are always visible under the cell when present; no need to switch modes.
+- Each cell has a 6-character ID (e.g., `a1b2c3`). You can reference previous results in new JS cells using:
+  ```js
+  const prev = env.getCellOutput("a1b2c3");
+  // use prev here
+  return prev;
+  ```
+- Large outputs are automatically flagged to be omitted from AI prompts when exceeding the configured limit (default 6000 chars):
+  - The cell gets `omitOutputToAi: true` and shows an “AI OUTPUT OMITTED” badge.
+  - You can configure the limit per notebook at `notebook.settings.outputMaxSize`.
+
+### Running Markdown Cells with AI (New)
+
+- Markdown cells are executable. When RUN is pressed on a Markdown cell:
+  - The client sends the full notebook context (cell ids, types, content, and truncated outputs where allowed) to the server `RUN_CELL` tool.
+  - The server crafts a prompt instructing AI to generate a JavaScript cell that ends with a `return <value>` and to use `env.getCellOutput("<id>")` when reusing data from other cells.
+  - The generated cell(s) are inserted immediately after the markdown cell.
+
+Example markdown workflow:
+```markdown
+# Get 10 users and show their names
+
+Run this to create a JS cell that fetches data using env tools and returns an array of names.
+```
+
+Example generated JavaScript (conceptual):
+```js
+const rows = await env.DATABASES.RUN_SQL({ sql: "SELECT name FROM users LIMIT 10" });
+const names = rows?.results?.map(r => r.name) ?? [];
+return names;
+```
+
+### Referencing Previous Results
+
+Given a previous cell with ID `x9k2mz` that returned an array, you can reuse it like this:
+```js
+const data = env.getCellOutput("x9k2mz");
+const doubled = (data ?? []).map(n => n * 2);
+return doubled;
+```
+
 ### RPC Communication
 Fully-typed RPC client connects the React frontend to MCP server tools:
 ```typescript
-// Notebook operations
-const notebooks = await client.LIST_NOTEBOOKS();
-await client.CREATE_CELL({ notebookId, type: "javascript", content: "console.log('Hello!')" });
-
-// Tool execution
-const result = await client.EXECUTE_TOOL({ toolName: "MY_TOOL", args: { input: "data" } });
+// Run markdown cell via AI generation
+const result = await client.RUN_CELL({
+  notebook: {
+    cells: [
+      // send cells with ids/types/content and (optionally) truncated outputs when allowed
+    ]
+  },
+  cellToRun: 0,
+});
 ```
 
 ## 🚀 Key Use Cases

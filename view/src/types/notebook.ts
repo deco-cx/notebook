@@ -25,6 +25,7 @@ export interface Cell {
   id: string;
   type: CellType;
   content: string;
+  omitOutputToAi?: boolean;
   selectedView?: string; // ID of the currently selected view app
   viewData?: Record<string, any>; // View-specific metadata/state
   outputs?: Array<{
@@ -46,6 +47,9 @@ export interface Notebook {
   cells: Cell[];
   createdAt: string;
   updatedAt: string;
+  settings?: {
+    outputMaxSize?: number;
+  };
 }
 
 export interface ToolDefinition {

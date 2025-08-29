@@ -16,8 +16,14 @@ export const createRunCellTool = (env: Env) =>
     inputSchema: z.object({
       notebook: z.object({
         cells: z.array(z.object({
+          id: z.string().optional(),
           type: z.string(),
-          content: z.string()
+          content: z.string(),
+          omitOutputToAi: z.boolean().optional(),
+          outputs: z.array(z.object({
+            type: z.enum(["json", "text", "html", "error"]).optional(),
+            content: z.string().optional(),
+          })).optional()
         }))
       }),
       cellToRun: z.number()
@@ -29,9 +35,16 @@ export const createRunCellTool = (env: Env) =>
       }))
     }),
     execute: async ({ context }) => {
-      const currentBlocks = context.notebook.cells.map(cell => ({
+      const max = 6000;
+      const notebookContext = context.notebook.cells.map((cell, idx) => ({
+        idx,
+        id: (cell as any).id,
         type: cell.type,
-        content: cell.content
+        content: String(cell.content || '').slice(0, 2000),
+        outputs: (cell as any).omitOutputToAi ? undefined : ((cell as any).outputs?.map((o: any) => ({
+          type: o.type,
+          content: String(o.content ?? '').slice(0, max)
+        })) ?? undefined)
       }));
 
       // Available tools for the AI context
@@ -106,26 +119,24 @@ export const createRunCellTool = (env: Env) =>
         required: ["cellsToAdd"]
       };
 
-      const prompt = `Seu trabalho é analisar um bloco markdown e gerar código JavaScript que execute o que foi solicitado.
-
-CONTEXTO:
-O usuário executou o bloco ${context.cellToRun} que contém: "${currentBlocks[context.cellToRun]?.content}"
-
-REGRAS:
-1. Se o bloco é markdown, gere APENAS código JavaScript que execute a solicitação
-2. NÃO repita o conteúdo markdown - apenas implemente o que foi pedido
-3. Se precisar de explicações, coloque como comentários no próprio código JavaScript
-4. Use as tools disponíveis quando necessário com a sintaxe env.APP_NAME.TOOL_NAME(params)
-
-TOOLS DISPONÍVEIS:
-${workspaceTools.map(tool => `- ${tool.example.trim()}`).join('\n')}
-
-EXEMPLOS:
-- Se o markdown diz "# Buscar usuários", gere: { type: "javascript", content: "const users = await env.DATABASES.RUN_SQL({ sql: 'SELECT * FROM users' });\nconsole.log(users);" }
-- Se o markdown diz "# Hello World", gere: { type: "javascript", content: "console.log('Hello World!');" }
-- Se o markdown diz "# Listar repositórios", gere código que chama a API do GitHub
-
-Gere apenas o código JavaScript necessário para executar a solicitação do bloco markdown.`;
+      const cellRun = context.notebook.cells[context.cellToRun];
+      const prompt = "" +
+        "Você é um gerador de código para células JavaScript dentro de um Notebook.\n\n" +
+        "CONTEXT0: NOTEBOOK COMPLETO (cells com type, content e outputs, estes truncados e omitidos quando indicado)\n" +
+        JSON.stringify(notebookContext) + "\n\n" +
+        "CONTEXT1: CÉLULA ACIONADA\n" +
+        `Index: ${context.cellToRun}\n` +
+        `ID: ${(cellRun as any)?.id}\n` +
+        `Tipo: ${cellRun?.type}\n` +
+        `Conteúdo: ${cellRun?.content}\n\n` +
+        "REGRAS:\n" +
+        "1) Se a célula acionada for markdown, gere APENAS uma nova célula { type: \"javascript\", content: \"...\" }.\n" +
+        "2) O código gerado DEVE terminar com um return <valor> representando o resultado principal (esse valor será capturado como output da célula).\n" +
+        "3) Para reutilizar dados de outras células, chame env.getCellOutput(\"<id>\").\n" +
+        "4) Para usar ferramentas, chame env.APP.TOOL(params) conforme exemplos abaixo.\n" +
+        "5) Não repita markdown em texto; implemente diretamente o pedido em JS.\n\n" +
+        "TOOLS DISPONÍVEIS:\n" +
+        workspaceTools.map(tool => `- ${tool.example.trim()}`).join('\n');
 
       try {
         // Call AI_GENERATE_OBJECT through the deco platform
@@ -137,9 +148,19 @@ Gere apenas o código JavaScript necessário para executar a solicitação do bl
           schema
         });
 
-        return {
-          cellsToAdd: result.object?.cellsToAdd || []
-        };
+        const raw = (result as any)?.object?.cellsToAdd;
+        const cellsToAdd: { type: "markdown" | "javascript"; content: string }[] = Array.isArray(raw)
+          ? raw.flatMap((c: any) => {
+              const t = c?.type;
+              const content = c?.content;
+              if ((t === "markdown" || t === "javascript") && typeof content === "string") {
+                return [{ type: t, content }];
+              }
+              return [];
+            })
+          : [];
+
+        return { cellsToAdd };
       } catch (error) {
         console.error("AI_GENERATE_OBJECT error:", error);
         return {
