@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-export function SiteHeader() {
+export function SiteHeader({ onCreateNewNote }: { onCreateNewNote?: () => void }) {
   const { toggleSidebar } = useSidebar()
 
   return (
@@ -85,6 +85,11 @@ export function SiteHeader() {
         
         {/* Right side actions */}
         <div className="flex items-center gap-2">
+          {onCreateNewNote && (
+            <Button className="bg-[#d0ec1a] text-[#07401a] hover:bg-[#c5e016]" onClick={onCreateNewNote}>
+              New Note
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="h-9 w-9">
             <Search className="h-[18px] w-[18px]" />
           </Button>

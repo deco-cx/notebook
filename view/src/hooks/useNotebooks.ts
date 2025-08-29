@@ -6,6 +6,7 @@ interface UseNotebooksReturn {
   currentNotebook: NotebookType;
   availableNotebooks: NotebookType[];
   createNewNotebook: () => void;
+  createNewNote: () => void;
   switchToNotebook: (notebookId: string) => void;
   updateCurrentNotebook: (notebook: NotebookType) => void;
   deleteNotebook: (notebookId: string) => void;
@@ -154,6 +155,49 @@ export function useNotebooks(): UseNotebooksReturn {
     updateUrl(newNotebook.id);
   };
 
+  const createNewNote = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.toLocaleDateString('en', { month: 'short' }).toLowerCase();
+    const day = now.getDate();
+
+    const welcomeMarkdown = `# Welcome to deco\n\n**This is the first note in your workspace.**\n\nWrite your ideas in notes and deco will make them come true using AI software generation.\n\n---\n\nTips:\n- Add a new Markdown cell and describe what you want to build.\n- Press \\\"Run\\\" on the Markdown cell to let AI generate helpful code cells.\n- Edit and re-run code cells to iterate quickly.`;
+
+    const jsWelcome = `// Welcome! Run this cell (click Run)\n// Then add a new Markdown cell ("+ Markdown"), write your idea,\n// and press Run on the Markdown cell to let AI generate code.\n\nalert('👋 Welcome to deco! Add a new Markdown cell, write your idea, and hit \"Run\" on that Markdown cell.');`;
+
+    const newNotebook: NotebookType = {
+      id: `note_${Date.now()}`,
+      path: `/${year}/${month}/${day}/note_${Date.now()}.json`,
+      cells: [
+        {
+          id: genId(6),
+          type: 'markdown',
+          content: welcomeMarkdown,
+          status: 'idle'
+        },
+        {
+          id: genId(6),
+          type: 'javascript',
+          content: jsWelcome,
+          status: 'idle'
+        }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      settings: { outputMaxSize: 6000 }
+    };
+
+    const updatedNotebooks = {
+      ...notebooks,
+      [newNotebook.id]: newNotebook
+    };
+
+    setNotebooks(updatedNotebooks);
+    saveNotebooks(updatedNotebooks);
+    setCurrentNotebookId(newNotebook.id);
+    updateUrl(newNotebook.id);
+  };
+
   const switchToNotebook = (notebookId: string) => {
     if (notebooks[notebookId] && notebookId !== currentNotebookId) {
       setCurrentNotebookId(notebookId);
@@ -165,28 +209,8 @@ export function useNotebooks(): UseNotebooksReturn {
     console.log('[UPDATE_NOTEBOOK] Called with', updatedNotebook.cells.length, 'cells');
     console.trace('Call stack');
     
-    // Check if this is a stale update (more cells than current)
-    const currentNotebook = notebooks[updatedNotebook.id];
-    if (currentNotebook) {
-      console.log('[UPDATE_NOTEBOOK] Current has', currentNotebook.cells.length, 'cells');
-      
-      if (updatedNotebook.cells.length > currentNotebook.cells.length) {
-        console.log('[UPDATE_NOTEBOOK] WARNING: Incoming has MORE cells than current!');
-        // Check if the new cells are actually the same as old cells (stale update)
-        const currentIds = currentNotebook.cells.map(c => c.id);
-        const incomingIds = updatedNotebook.cells.map(c => c.id);
-        
-        // If incoming has cells that were already deleted, this is a stale update
-        const deletedCells = incomingIds.filter(id => !currentIds.includes(id));
-        if (deletedCells.length > 0 && currentNotebook.updatedAt > updatedNotebook.updatedAt) {
-          console.log('[UPDATE_NOTEBOOK] BLOCKED: Stale update with deleted cells');
-          return;
-        }
-      }
-    }
-    
-    // Always use the incoming notebook directly - no merging
-    // This ensures deletions, additions, and updates all work correctly
+    // Always accept the update - the caller knows what they're doing
+    // This includes AI-generated cells, user edits, and deletions
     const merged = {
       ...updatedNotebook,
       updatedAt: new Date().toISOString(),
@@ -245,6 +269,7 @@ export function useNotebooks(): UseNotebooksReturn {
     currentNotebook,
     availableNotebooks,
     createNewNotebook,
+    createNewNote,
     switchToNotebook,
     updateCurrentNotebook,
     deleteNotebook

@@ -13,6 +13,7 @@ export function App() {
     currentNotebook,
     availableNotebooks,
     createNewNotebook,
+    createNewNote,
     switchToNotebook,
     updateCurrentNotebook,
     deleteNotebook
@@ -27,7 +28,7 @@ export function App() {
   return (
     <div className="[--header-height:calc(--spacing(14))]">
       <SidebarProvider className="flex flex-col">
-        <SiteHeader />
+        <SiteHeader onCreateNewNote={createNewNote} />
         <div className="flex flex-1">
           <AppSidebar />
           <SidebarInset>

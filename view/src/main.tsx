@@ -15,6 +15,7 @@ import { Toaster } from "sonner";
 
 import "./styles.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { enableStorageDebug } from "./lib/storageDebug";
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -145,6 +146,9 @@ console.log('💡 Commands available:');
 console.log('  clearData() - Clear all data and refresh');
 console.log('  nukeData()  - Nuclear option, force clear everything');
 console.log('  showData()  - Show detailed storage report');
+
+// Enable storage debug if requested
+try { enableStorageDebug(); } catch {}
 
 const rootElement = document.getElementById("root");
 if (rootElement && !rootElement.innerHTML) {

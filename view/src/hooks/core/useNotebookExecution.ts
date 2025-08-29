@@ -78,11 +78,19 @@ export function useNotebookExecution(notebook: NotebookType) {
           console.log('CALLING DATABASES.RUN_SQL:', params);
           try {
             // Call the tool through RPC client
-            const result = await client.TOOL_CALL({
+            const response = await client.TOOL_CALL({
               toolName: 'DATABASES_RUN_SQL',
               params
             });
-            return result.result || result;
+            
+            // Extract the nested results array from the response structure
+            // Response format: { result: [{ results: [...] }] }
+            if (response?.result?.[0]?.results) {
+              return response.result[0].results;
+            }
+            
+            // Fallback to original response if structure is different
+            return response.result || response;
           } catch (error) {
             console.error('DATABASES.RUN_SQL error:', error);
             return { error: 'Failed to execute SQL query' };
