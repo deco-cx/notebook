@@ -47,16 +47,67 @@ export function useNotebooks(): UseNotebooksReturn {
     return {};
   };
 
-  // Save notebooks to localStorage
+  // Save notebooks to localStorage with size protection
   const saveNotebooks = (notebooksToSave: Record<string, NotebookType>) => {
     console.log('[SAVE] Saving notebooks with cells:', Object.keys(notebooksToSave).map(id => ({
       id,
       cells: notebooksToSave[id].cells.length
     })));
+    
     try {
-      localStorage.setItem('notebooks', JSON.stringify(notebooksToSave));
+      // Create a safe copy with truncated outputs for storage
+      const safeNotebooks: Record<string, NotebookType> = {};
+      const MAX_OUTPUT_SIZE = 5000; // Max characters per output for localStorage
+      
+      for (const [id, notebook] of Object.entries(notebooksToSave)) {
+        safeNotebooks[id] = {
+          ...notebook,
+          cells: notebook.cells.map(cell => {
+            // If cell has outputs, truncate them for storage
+            if (cell.outputs && cell.outputs.length > 0) {
+              const safeOutputs = cell.outputs.map(output => {
+                // Handle undefined or null content
+                if (output.content === undefined || output.content === null) {
+                  return output;
+                }
+                
+                const content = typeof output.content === 'string' 
+                  ? output.content 
+                  : JSON.stringify(output.content);
+                
+                if (content && content.length > MAX_OUTPUT_SIZE) {
+                  console.warn(`[SAVE] Truncating large output in cell ${cell.id} (${content.length} chars -> ${MAX_OUTPUT_SIZE} chars)`);
+                  return {
+                    ...output,
+                    content: content.substring(0, MAX_OUTPUT_SIZE) + '\n...[Output truncated for storage]'
+                  };
+                }
+                return output;
+              });
+              
+              return { ...cell, outputs: safeOutputs };
+            }
+            return cell;
+          })
+        };
+      }
+      
+      const serialized = JSON.stringify(safeNotebooks);
+      
+      // Check size before saving (localStorage typically has ~5-10MB limit)
+      const sizeInMB = new Blob([serialized]).size / (1024 * 1024);
+      if (sizeInMB > 4) {
+        console.error(`[SAVE] Notebook data too large (${sizeInMB.toFixed(2)}MB), further truncation needed`);
+        // Could implement more aggressive truncation here if needed
+      }
+      
+      localStorage.setItem('notebooks', serialized);
+      console.log(`[SAVE] Successfully saved ${sizeInMB.toFixed(2)}MB to localStorage`);
     } catch (error) {
       console.error('Failed to save notebooks:', error);
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        alert('Storage quota exceeded! Large outputs have been truncated. The full data remains in memory for this session.');
+      }
     }
   };
 

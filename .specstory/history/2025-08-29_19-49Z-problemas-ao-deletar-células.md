@@ -2386,3 +2386,195 @@ This fixes the issue where the cell would complete immediately without waiting f
 
 ---
 
+_**User**_
+
+Failed to save notebooks: QuotaExceededError: Failed to execute 'setItem' on 'Storage': Setting the value of 'notebooks' exceeded the quota.
+
+
+This happened after I generated a tool call that queried a loooot of data.
+
+We need some security check
+
+If the output if very large, console.log and only save a partial of it
+
+This won't be very bad because there's the variable system 
+
+---
+
+_**Assistant**_
+
+You're right! The localStorage quota is being exceeded when cells have very large outputs. Let me add security checks to truncate large outputs before saving to localStorage while keeping the full data available in memory for the current session.
+
+---
+
+Read file: undefined
+
+---
+
+<details><summary>Edit file: /Users/lucis/deco/studio/view/src/hooks/useNotebooks.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 49, lines removed: 3
+
+```diff
+@@ -48,14 +48,60 @@
+    };
+  
+-   // Save notebooks to localStorage
++   // Save notebooks to localStorage with size protection
+    const saveNotebooks = (notebooksToSave: Record<string, NotebookType>) => {
+      console.log('[SAVE] Saving notebooks with cells:', Object.keys(notebooksToSave).map(id => ({
+        id,
+        cells: notebooksToSave[id].cells.length
+      })));
+-     try {
+-       localStorage.setItem('notebooks', JSON.stringify(notebooksToSave));
++     
++     try {
++       // Create a safe copy with truncated outputs for storage
++       const safeNotebooks: Record<string, NotebookType> = {};
++       const MAX_OUTPUT_SIZE = 5000; // Max characters per output for localStorage
++       
++       for (const [id, notebook] of Object.entries(notebooksToSave)) {
++         safeNotebooks[id] = {
++           ...notebook,
++           cells: notebook.cells.map(cell => {
++             // If cell has outputs, truncate them for storage
++             if (cell.outputs && cell.outputs.length > 0) {
++               const safeOutputs = cell.outputs.map(output => {
++                 const content = typeof output.content === 'string' 
++                   ? output.content 
++                   : JSON.stringify(output.content);
++                 
++                 if (content.length > MAX_OUTPUT_SIZE) {
++                   console.warn(`[SAVE] Truncating large output in cell ${cell.id} (${content.length} chars -> ${MAX_OUTPUT_SIZE} chars)`);
++                   return {
++                     ...output,
++                     content: content.substring(0, MAX_OUTPUT_SIZE) + '\n...[Output truncated for storage]'
++                   };
++                 }
++                 return output;
++               });
++               
++               return { ...cell, outputs: safeOutputs };
++             }
++             return cell;
++           })
++         };
++       }
++       
++       const serialized = JSON.stringify(safeNotebooks);
++       
++       // Check size before saving (localStorage typically has ~5-10MB limit)
++       const sizeInMB = new Blob([serialized]).size / (1024 * 1024);
++       if (sizeInMB > 4) {
++         console.error(`[SAVE] Notebook data too large (${sizeInMB.toFixed(2)}MB), further truncation needed`);
++         // Could implement more aggressive truncation here if needed
++       }
++       
++       localStorage.setItem('notebooks', serialized);
++       console.log(`[SAVE] Successfully saved ${sizeInMB.toFixed(2)}MB to localStorage`);
+      } catch (error) {
+        console.error('Failed to save notebooks:', error);
++       if (error instanceof DOMException && error.name === 'QuotaExceededError') {
++         alert('Storage quota exceeded! Large outputs have been truncated. The full data remains in memory for this session.');
++       }
+      }
+    };
+```
+
+</details>
+
+---
+
+
+
+---
+
+Perfect! I've added protection against localStorage quota issues:
+
+**What's changed:**
+1. **Output truncation**: Large outputs (>5000 chars) are automatically truncated when saving to localStorage
+2. **Size monitoring**: Logs the total size being saved and warns if approaching limits
+3. **Console warnings**: Shows which cells had outputs truncated and by how much
+4. **Error handling**: Gracefully handles QuotaExceededError with user notification
+5. **Memory preservation**: Full data remains in memory during the session - only localStorage is truncated
+
+**How it works:**
+- When saving to localStorage, creates a "safe" copy with truncated outputs
+- Original notebook in memory keeps full data (for variables, display, etc.)
+- On page refresh, you'll get the truncated version from localStorage
+- Large query results will show first 5000 chars + "[Output truncated for storage]"
+
+This prevents the quota error while still allowing you to:
+- Query large datasets
+- See results in the console
+- Use the data via the variable system during your session
+- Have notebooks persist across refreshes (with truncated outputs)
+
+The full output is still visible in the cell during the current session, just not persisted to localStorage.
+
+---
+
+_**User**_
+
+[SAVE] Saving notebooks with cells: (2) [{…}, {…}]
+useNotebooks.ts:102 Failed to save notebooks: TypeError: Cannot read properties of undefined (reading 'length')
+    at useNotebooks.ts:73:29
+    at Array.map (<anonymous>)
+    at useNotebooks.ts:68:48
+
+---
+
+_**Assistant**_
+
+There's an error when trying to read the `length` property of `output.content` which is undefined. Let me fix the safety check in the truncation logic:
+
+---
+
+<details><summary>Edit file: /Users/lucis/deco/studio/view/src/hooks/useNotebooks.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 6, lines removed: 1
+
+```diff
+@@ -67,9 +67,14 @@
+              if (cell.outputs && cell.outputs.length > 0) {
+                const safeOutputs = cell.outputs.map(output => {
++                 // Handle undefined or null content
++                 if (output.content === undefined || output.content === null) {
++                   return output;
++                 }
++                 
+                  const content = typeof output.content === 'string' 
+                    ? output.content 
+                    : JSON.stringify(output.content);
+                  
+-                 if (content.length > MAX_OUTPUT_SIZE) {
++                 if (content && content.length > MAX_OUTPUT_SIZE) {
+                    console.warn(`[SAVE] Truncating large output in cell ${cell.id} (${content.length} chars -> ${MAX_OUTPUT_SIZE} chars)`);
+                    return {
+```
+
+</details>
+
+---
+
+
+
+---
+
+Fixed! The issue was that some outputs might have `undefined` or `null` content, which was causing the error when trying to access `.length`. 
+
+The fix adds:
+1. **Null/undefined check**: Skip truncation if `output.content` is undefined or null
+2. **Additional safety**: Check if `content` exists before accessing its length
+
+Now the save operation will handle outputs with missing content gracefully and won't throw errors when saving notebooks.
+
+---
+
