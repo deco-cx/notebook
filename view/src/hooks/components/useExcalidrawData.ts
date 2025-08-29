@@ -72,9 +72,12 @@ export function useExcalidrawData(
 
     debounceTimerRef.current = window.setTimeout(() => {
       const serializedData = serializeData(elements as any[], appState);
-      onContentChange(serializedData);
+      // Only update if content actually changed
+      if (serializedData !== cell.content) {
+        onContentChange(serializedData);
+      }
     }, 800);
-  }, [onContentChange, serializeData]);
+  }, [cell.content, onContentChange, serializeData]);
 
   // Update scene when cell content changes externally
   const updateScene = useCallback((data: any) => {
@@ -98,12 +101,13 @@ export function useExcalidrawData(
   }, []);
 
   // Update scene when cell content changes externally
-  useEffect(() => {
-    if (excalidrawAPIRef.current && cell.content) {
-      const data = getInitialData();
-      updateScene(data);
-    }
-  }, [cell.content, getInitialData, updateScene]);
+  // Disabled to prevent infinite loops - the scene is already initialized with getInitialData
+  // useEffect(() => {
+  //   if (excalidrawAPIRef.current && cell.content) {
+  //     const data = getInitialData();
+  //     updateScene(data);
+  //   }
+  // }, [cell.content, getInitialData, updateScene]);
 
   return {
     // Refs

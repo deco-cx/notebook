@@ -179,8 +179,8 @@ export function useNotebookExecution(notebook: NotebookType) {
     try {
       if (cell.type === 'markdown') {
         // Run markdown cell through AI to generate new cells
-        console.log('RUNNING_MARKDOWN_CELL:', cellIndex);
-        console.log('CELL_CONTENT:', cell.content);
+
+
         
         const max = notebook.settings?.outputMaxSize ?? 6000;
         

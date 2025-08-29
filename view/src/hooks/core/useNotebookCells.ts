@@ -41,18 +41,14 @@ export function useNotebookCells(
   };
 
   const deleteCell = (cellIndex: number) => {
-    console.log('DELETE_CELL_CALLED:', cellIndex, 'Total cells:', notebook.cells.length);
+    console.log('[DELETE_CELL] Deleting cell', cellIndex, 'from', notebook.cells.length, 'cells');
+    console.log('[DELETE_CELL] Cell being deleted:', notebook.cells[cellIndex]?.id);
     
-    if (notebook.cells.length <= 1) {
-      // Don't delete the last cell, just clear its content
-      console.log('CLEARING_LAST_CELL_CONTENT');
-      updateCell(cellIndex, { content: '', outputs: [], status: 'idle' });
-      return;
-    }
-
-    console.log('DELETING_CELL_AT_INDEX:', cellIndex);
+    // Allow deleting all cells - the notebook can have 0 cells
     const updatedCells = notebook.cells.filter((_, index) => index !== cellIndex);
-    console.log('NEW_CELLS_COUNT:', updatedCells.length);
+    
+    console.log('[DELETE_CELL] After deletion:', updatedCells.length, 'cells remaining');
+    console.log('[DELETE_CELL] Calling onNotebookChange with updated notebook');
     
     onNotebookChange({
       ...notebook,
@@ -62,6 +58,20 @@ export function useNotebookCells(
   };
 
   const updateCellWithMetadata = (cellIndex: number, updatedCell: CellInterface) => {
+    // Check if this update is for a cell that still exists
+    if (cellIndex >= notebook.cells.length) {
+      // Ignoring update for non-existent cell
+      return;
+    }
+    
+    // Check if the cell ID matches
+    if (notebook.cells[cellIndex].id !== updatedCell.id) {
+      // Cell ID mismatch - ignoring update
+      return;
+    }
+    
+
+    
     const updatedCells = notebook.cells.map((c, i) => 
       i === cellIndex ? { 
         ...updatedCell, 

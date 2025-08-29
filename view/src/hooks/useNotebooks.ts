@@ -38,10 +38,6 @@ export function useNotebooks(): UseNotebooksReturn {
       const stored = localStorage.getItem('notebooks');
       if (stored) {
         const parsedNotebooks = JSON.parse(stored);
-        console.log('LOADED_FROM_LOCALSTORAGE:', Object.keys(parsedNotebooks).map(id => ({
-          id,
-          cellCount: parsedNotebooks[id].cells.length
-        })));
         return parsedNotebooks;
       }
     } catch (error) {
@@ -52,6 +48,10 @@ export function useNotebooks(): UseNotebooksReturn {
 
   // Save notebooks to localStorage
   const saveNotebooks = (notebooksToSave: Record<string, NotebookType>) => {
+    console.log('[SAVE] Saving notebooks with cells:', Object.keys(notebooksToSave).map(id => ({
+      id,
+      cells: notebooksToSave[id].cells.length
+    })));
     try {
       localStorage.setItem('notebooks', JSON.stringify(notebooksToSave));
     } catch (error) {
@@ -60,39 +60,55 @@ export function useNotebooks(): UseNotebooksReturn {
   };
 
   // Create default notebook
-  const createDefaultNotebook = (): NotebookType => ({
-    id: 'default',
-    path: '/2025/jan/27/index.json',
-    cells: [
-      {
-        id: genId(6),
-        type: 'markdown' as const,
-        content: '# Welcome to Browser Jupyter Notebook\n\nThis is a proof-of-concept notebook that runs entirely in your browser and can call Deco workspace tools.\n\n**Try this:**\n1. Run this cell to generate some JavaScript code\n2. Edit the generated code and run it\n3. Add new cells using the buttons below',
-        status: 'idle' as const
-      }
-    ],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    settings: { outputMaxSize: 6000 }
-  });
+  const createDefaultNotebook = (): NotebookType => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.toLocaleDateString('en', { month: 'short' }).toLowerCase();
+    const day = now.getDate();
+    
+    return {
+      id: 'default',
+      path: `/${year}/${month}/${day}/index.json`,
+      cells: [
+        {
+          id: genId(6),
+          type: 'markdown' as const,
+          content: '# Welcome to Browser Jupyter Notebook\n\nThis is a proof-of-concept notebook that runs entirely in your browser and can call Deco workspace tools.\n\n**Try this:**\n1. Run this cell to generate some JavaScript code\n2. Edit the generated code and run it\n3. Add new cells using the buttons below',
+          status: 'idle' as const
+        }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      settings: { outputMaxSize: 6000 }
+    };
+  };
 
   // Initialize notebooks on mount
   useEffect(() => {
+    console.log('[INIT] === INITIALIZING NOTEBOOKS ===');
     const urlNotebookId = getNotebookIdFromUrl();
     const loadedNotebooks = loadNotebooks();
     
-    // If no notebooks exist, create default
+    console.log('[INIT] Loaded from localStorage:', Object.keys(loadedNotebooks).map(id => ({
+      id,
+      cells: loadedNotebooks[id].cells.length
+    })));
+    
+    // If no notebooks exist at all, create default
     if (Object.keys(loadedNotebooks).length === 0) {
+      console.log('[INIT] No notebooks found, creating default');
       const defaultNotebook = createDefaultNotebook();
       const initialNotebooks = { [defaultNotebook.id]: defaultNotebook };
       setNotebooks(initialNotebooks);
       saveNotebooks(initialNotebooks);
     } else {
+      console.log('[INIT] Using loaded notebooks');
       setNotebooks(loadedNotebooks);
     }
 
     // Set current notebook from URL or default
     const targetNotebookId = loadedNotebooks[urlNotebookId] ? urlNotebookId : 'default';
+    console.log('[INIT] Setting current notebook to:', targetNotebookId);
     setCurrentNotebookId(targetNotebookId);
     updateUrl(targetNotebookId);
   }, []);
@@ -146,6 +162,29 @@ export function useNotebooks(): UseNotebooksReturn {
   };
 
   const updateCurrentNotebook = (updatedNotebook: NotebookType) => {
+    console.log('[UPDATE_NOTEBOOK] Called with', updatedNotebook.cells.length, 'cells');
+    console.trace('Call stack');
+    
+    // Check if this is a stale update (more cells than current)
+    const currentNotebook = notebooks[updatedNotebook.id];
+    if (currentNotebook) {
+      console.log('[UPDATE_NOTEBOOK] Current has', currentNotebook.cells.length, 'cells');
+      
+      if (updatedNotebook.cells.length > currentNotebook.cells.length) {
+        console.log('[UPDATE_NOTEBOOK] WARNING: Incoming has MORE cells than current!');
+        // Check if the new cells are actually the same as old cells (stale update)
+        const currentIds = currentNotebook.cells.map(c => c.id);
+        const incomingIds = updatedNotebook.cells.map(c => c.id);
+        
+        // If incoming has cells that were already deleted, this is a stale update
+        const deletedCells = incomingIds.filter(id => !currentIds.includes(id));
+        if (deletedCells.length > 0 && currentNotebook.updatedAt > updatedNotebook.updatedAt) {
+          console.log('[UPDATE_NOTEBOOK] BLOCKED: Stale update with deleted cells');
+          return;
+        }
+      }
+    }
+    
     // Always use the incoming notebook directly - no merging
     // This ensures deletions, additions, and updates all work correctly
     const merged = {
@@ -167,8 +206,21 @@ export function useNotebooks(): UseNotebooksReturn {
 
   const deleteNotebook = (notebookId: string) => {
     if (notebookId === 'default') {
-      // Don't allow deleting the default notebook, just reset it
-      const resetNotebook = createDefaultNotebook();
+      // Don't allow deleting the default notebook, just clear it
+      // Clearing default notebook
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.toLocaleDateString('en', { month: 'short' }).toLowerCase();
+      const day = now.getDate();
+      
+      const resetNotebook: NotebookType = {
+        id: 'default',
+        path: `/${year}/${month}/${day}/index.json`,
+        cells: [], // Empty cells array
+        createdAt: notebooks['default']?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        settings: { outputMaxSize: 6000 }
+      };
       updateCurrentNotebook(resetNotebook);
       return;
     }
@@ -188,15 +240,6 @@ export function useNotebooks(): UseNotebooksReturn {
 
   const currentNotebook = notebooks[currentNotebookId] || createDefaultNotebook();
   const availableNotebooks = Object.values(notebooks);
-
-  console.log('USE_NOTEBOOKS_RETURN:', {
-    currentNotebookId,
-    currentNotebookCells: currentNotebook.cells.length,
-    notebooksState: Object.keys(notebooks).map(id => ({
-      id,
-      cellCount: notebooks[id].cells.length
-    }))
-  });
 
   return {
     currentNotebook,

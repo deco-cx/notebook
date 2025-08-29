@@ -6,7 +6,10 @@ export function useCellContent(
   onUpdate: (cell: CellInterface) => void
 ) {
   const handleContentChange = (content: string) => {
-    onUpdate({ ...cell, content });
+    // Only update if content actually changed
+    if (content !== cell.content) {
+      onUpdate({ ...cell, content });
+    }
   };
 
   const handleViewDataChange = (viewData: Record<string, any>) => {
