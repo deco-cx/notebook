@@ -1,12 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import { Play, Square, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
-import type { Cell as CellInterface, CellType } from '../../types/notebook';
+import type { Cell as CellInterface } from '../../types/notebook';
 import { ViewWrapper } from './ViewWrapper';
-import { getCompatibleViews, getDefaultView } from '../../utils/availableViews';
+import { 
+  useCellView, 
+  useCellContent, 
+  useCellKeyboard, 
+  useCellTextarea 
+} from '../../hooks';
 
 interface CellProps {
   cell: CellInterface;
@@ -17,67 +22,11 @@ interface CellProps {
 }
 
 export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) {
-  const [selectedViewId, setSelectedViewId] = useState(
-    cell.selectedView || getDefaultView(cell.type)?.id
-  );
-  const [renderMode, setRenderMode] = useState<'edit' | 'preview' | 'output'>('edit');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const compatibleViews = getCompatibleViews(cell.type);
-  const selectedView = compatibleViews.find(v => v.id === selectedViewId);
-
-  const handleViewChange = (viewId: string) => {
-    setSelectedViewId(viewId);
-    onUpdate({ 
-      ...cell, 
-      selectedView: viewId 
-    });
-  };
-
-  const handleContentChange = (content: string) => {
-    onUpdate({ ...cell, content });
-  };
-
-  const handleViewDataChange = (viewData: Record<string, any>) => {
-    onUpdate({ 
-      ...cell, 
-      viewData: { ...cell.viewData, ...viewData }
-    });
-  };
-
-  const handleTypeChange = (type: CellType) => {
-    onUpdate({ 
-      ...cell, 
-      type,
-      selectedView: getDefaultView(type)?.id 
-    });
-  };
-
-  // Auto-resize textarea
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
-    }
-  }, [cell.content]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Cmd+Enter or Ctrl+Enter to run
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault();
-      onRun();
-    }
-    // Ctrl+M for markdown
-    if (e.ctrlKey && e.key === 'm') {
-      e.preventDefault();
-      handleTypeChange('markdown');
-    }
-    // Ctrl+J for javascript
-    if (e.ctrlKey && e.key === 'j') {
-      e.preventDefault();
-      handleTypeChange('javascript');
-    }
-  };
+  // Use extracted hooks
+  const view = useCellView(cell, onUpdate);
+  const content = useCellContent(cell, onUpdate);
+  const keyboard = useCellKeyboard(onRun, content.handleTypeChange);
+  const textarea = useCellTextarea(cell.content);
 
   const formatExecutionTime = (time?: number) => {
     if (!time) return 'N/A';
@@ -93,7 +42,7 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
     }
   };
 
-  if (!selectedView) {
+  if (!view.selectedView) {
     return <div className="text-red-400 p-4">No compatible view found for cell type: {cell.type}</div>;
   }
 
@@ -105,7 +54,7 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
         <span className="ml-2 text-xs text-gray-400">ID:{cell.id}</span>
         <span className="cell-type">[{cell.type.toUpperCase()}]</span>
         <span className="ml-2 text-xs text-gray-400">VIEW:</span>
-        <span className="ml-1 text-xs font-mono text-gray-200">{selectedView.name}</span>
+        <span className="ml-1 text-xs font-mono text-gray-200">{view.selectedView.name}</span>
         <span className={`status-indicator ${getStatusColor()}`}></span>
         {cell.omitOutputToAi && (
           <span className="ml-2 px-2 py-0.5 text-[10px] rounded bg-yellow-700 text-yellow-200">
@@ -115,41 +64,41 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
         
 
         {/* View Selector */}
-        {compatibleViews.length > 0 && (
+        {view.compatibleViews.length > 0 && (
           <select
-            value={selectedViewId}
-            onChange={(e) => handleViewChange(e.target.value)}
+            value={view.selectedViewId}
+            onChange={(e) => view.handleViewChange(e.target.value)}
             className="bg-transparent text-xs border border-gray-600 px-2 py-1 text-white ml-2"
           >
-            {compatibleViews.map(view => (
-              <option key={view.id} value={view.id}>
-                {view.name}
+            {view.compatibleViews.map(viewOption => (
+              <option key={viewOption.id} value={viewOption.id}>
+                {viewOption.name}
               </option>
             ))}
           </select>
         )}
 
         {/* Legacy render mode switcher - keep for backward compatibility with old cells */}
-        {!selectedView.config?.canEdit && (
+        {!view.selectedView.config?.canEdit && (
           <div className="flex gap-1">
             <button
-              onClick={() => setRenderMode('edit')}
-              className={`px-2 py-1 text-xs ${renderMode === 'edit' ? 'bg-construction text-black' : 'text-gray-400'}`}
+              onClick={() => view.setRenderMode('edit')}
+              className={`px-2 py-1 text-xs ${view.renderMode === 'edit' ? 'bg-construction text-black' : 'text-gray-400'}`}
             >
               EDIT
             </button>
-            {cell.type === 'markdown' && (
+            {view.canPreview && (
               <button
-                onClick={() => setRenderMode('preview')}
-                className={`px-2 py-1 text-xs ${renderMode === 'preview' ? 'bg-construction text-black' : 'text-gray-400'}`}
+                onClick={() => view.setRenderMode('preview')}
+                className={`px-2 py-1 text-xs ${view.renderMode === 'preview' ? 'bg-construction text-black' : 'text-gray-400'}`}
               >
                 PREVIEW
               </button>
             )}
-            {cell.outputs && cell.outputs.length > 0 && (
+            {view.hasOutputs && (
               <button
-                onClick={() => setRenderMode('output')}
-                className={`px-2 py-1 text-xs ${renderMode === 'output' ? 'bg-construction text-black' : 'text-gray-400'}`}
+                onClick={() => view.setRenderMode('output')}
+                className={`px-2 py-1 text-xs ${view.renderMode === 'output' ? 'bg-construction text-black' : 'text-gray-400'}`}
               >
                 OUTPUT
               </button>
@@ -159,7 +108,7 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
 
         <span className="exec-time">EXEC: {formatExecutionTime(cell.executionTime || cell.metadata?.executionTime)}</span>
         
-        {selectedView.config?.canExecute && (
+        {view.selectedView.config?.canExecute && (
           <button
             onClick={onRun}
             disabled={cell.status === 'running'}
@@ -191,25 +140,25 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
 
       {/* Cell Content */}
       <div className="cell-content">
-        {selectedView.config?.canEdit ? (
+        {view.selectedView.config?.canEdit ? (
           /* Use new view system */
           <ViewWrapper
             cell={cell}
-            selectedView={selectedView}
-            onContentChange={handleContentChange}
-            onViewDataChange={handleViewDataChange}
+            selectedView={view.selectedView}
+            onContentChange={content.handleContentChange}
+            onViewDataChange={view.handleViewDataChange}
             onExecute={onRun}
           />
         ) : (
           /* Fallback to legacy rendering for views that don't support editing */
           <>
-            {renderMode === 'edit' && (
+            {view.renderMode === 'edit' && (
               <>
                 {cell.type === 'javascript' ? (
                   <CodeMirror
-                    value={cell.content}
-                    onChange={(value) => handleContentChange(value)}
-                    onKeyDown={handleKeyDown}
+                    value={content.content}
+                    onChange={(value) => content.handleContentChange(value)}
+                    onKeyDown={keyboard.handleKeyDown}
                     extensions={[javascript()]}
                     theme={oneDark}
                     placeholder="// Enter JavaScript code here...
@@ -236,10 +185,10 @@ console.log(result);"
                   />
                 ) : (
                   <textarea
-                    ref={textareaRef}
-                    value={cell.content}
-                    onChange={(e) => handleContentChange(e.target.value)}
-                    onKeyDown={handleKeyDown}
+                    ref={textarea.textareaRef}
+                    value={content.content}
+                    onChange={(e) => content.handleContentChange(e.target.value)}
+                    onKeyDown={keyboard.handleKeyDown}
                     placeholder="# Enter markdown here...
 
 Describe what you want to do and run this cell to generate code."
@@ -249,9 +198,9 @@ Describe what you want to do and run this cell to generate code."
               </>
             )}
 
-            {renderMode === 'preview' && cell.type === 'markdown' && (
+            {view.renderMode === 'preview' && cell.type === 'markdown' && (
               <div className="markdown-preview">
-                <ReactMarkdown>{cell.content}</ReactMarkdown>
+                <ReactMarkdown>{content.content}</ReactMarkdown>
               </div>
             )}
           </>

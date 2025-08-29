@@ -10,7 +10,7 @@ directory = "./view-build"
 binding = "ASSETS"
 
 [deco]
-workspace = "lucis"
+workspace = "deco.cx"
 enable_workflows = true
 local = false
 
