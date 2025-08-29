@@ -65,23 +65,23 @@
   --spacing-xxl: 32px;
 
   /* Legacy color aliases mapped to tokens */
-  --bg-primary: oklch(var(--card));
-  --bg-secondary: oklch(var(--muted));
-  --bg-tertiary: oklch(var(--secondary));
-  --bg-panel: oklch(var(--card));
+  --bg-primary: var(--card);
+  --bg-secondary: var(--muted);
+  --bg-tertiary: var(--secondary);
+  --bg-panel: var(--card);
 
-  --text-primary: oklch(var(--foreground));
-  --text-secondary: oklch(var(--primary));
-  --text-muted: oklch(var(--muted-foreground));
+  --text-primary: var(--foreground);
+  --text-secondary: var(--primary);
+  --text-muted: var(--muted-foreground);
   --text-white: oklch(98.5% 0.001 106.423);
 
-  --border-main: oklch(var(--ring));
-  --border-secondary: oklch(var(--border));
+  --border-main: var(--ring);
+  --border-secondary: var(--border);
 
-  --accent-warning: oklch(var(--warning));
-  --accent-success: oklch(var(--success));
-  --accent-error: oklch(var(--destructive));
-  --accent-info: oklch(var(--chart-2));
+  --accent-warning: var(--warning);
+  --accent-success: var(--success);
+  --accent-error: var(--destructive);
+  --accent-info: var(--chart-2);
 }
 
 /* Base styling */

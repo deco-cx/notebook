@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useEditor, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
@@ -10,23 +10,27 @@ export function useTipTapEditor(
   onContentChange: (content: string) => void,
   onExecute?: () => void
 ) {
+  // Keep onExecute stable inside extension to avoid re-creating the editor
+  const execRef = useRef(onExecute);
+  useEffect(() => { execRef.current = onExecute; }, [onExecute]);
+
   const RunShortcut = useMemo(() => (
     Extension.create({
       name: 'runShortcut',
       addKeyboardShortcuts() {
         return {
           'Mod-Enter': () => {
-            if (onExecute) onExecute();
+            if (execRef.current) execRef.current();
             return true;
           },
           'Shift-Enter': () => {
-            if (onExecute) onExecute();
+            if (execRef.current) execRef.current();
             return true;
           },
         };
       },
     })
-  ), [onExecute]);
+  ), []);
 
   const editor = useEditor({
     extensions: [

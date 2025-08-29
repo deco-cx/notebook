@@ -1,4 +1,4 @@
-import React from 'react';
+ 
 import { Play, Square, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import CodeMirror from '@uiw/react-codemirror';
