@@ -1,5 +1,5 @@
 import { useMemo, useEffect, useRef } from 'react';
-import { useEditor, type Editor } from '@tiptap/react';
+import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
 import { Extension } from '@tiptap/core';
@@ -40,14 +40,27 @@ export function useTipTapEditor(
     ],
     content: cell.content,
     onUpdate: ({ editor }) => {
+      // Avoid feedback loop when we programmatically set content
+      if ((editor as any)._applyingExternalContent) return;
       const markdown = editor.storage.markdown.getMarkdown();
+      (editor as any)._lastMarkdown = markdown;
       onContentChange(markdown);
     },
   });
 
+  // Keep editor content in sync only when external content changes
   useEffect(() => {
-    if (editor && cell.content !== editor.storage.markdown.getMarkdown()) {
-      editor.commands.setContent(cell.content);
+    if (!editor) return;
+    const current = editor.storage.markdown.getMarkdown();
+    const last = (editor as any)._lastMarkdown as string | undefined;
+    const next = cell.content ?? '';
+    // If the incoming content differs from what the editor last produced, update
+    if (next !== current && next !== last) {
+      (editor as any)._applyingExternalContent = true;
+      editor.commands.setContent(next);
+      (editor as any)._lastMarkdown = next;
+      // Allow TipTap to finish transaction before clearing the flag
+      setTimeout(() => { (editor as any)._applyingExternalContent = false; }, 0);
     }
   }, [cell.content, editor]);
 
