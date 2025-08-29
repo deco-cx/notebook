@@ -131,10 +131,11 @@ export const createRunCellTool = (env: Env) =>
         `Conteúdo: ${cellRun?.content}\n\n` +
         "REGRAS:\n" +
         "1) Se a célula acionada for markdown, gere APENAS uma nova célula { type: \"javascript\", content: \"...\" }.\n" +
-        "2) O código gerado DEVE terminar com um return <valor> representando o resultado principal (esse valor será capturado como output da célula).\n" +
-        "3) Para reutilizar dados de outras células, chame env.getCellOutput(\"<id>\").\n" +
-        "4) Para usar ferramentas, chame env.APP.TOOL(params) conforme exemplos abaixo.\n" +
-        "5) Não repita markdown em texto; implemente diretamente o pedido em JS.\n\n" +
+        "2) NÃO envolva o código em funções. Escreva o código diretamente no nível superior (top-level).\n" +
+        "3) Use await diretamente para chamadas assíncronas. Exemplo: const data = await env.DATABASES.RUN_SQL(...);\n" +
+        "4) O código DEVE terminar com return <valor> para capturar o resultado principal.\n" +
+        "5) Para reutilizar dados de outras células, chame env.getCellOutput(\"<id>\").\n" +
+        "6) Não repita markdown em texto; implemente diretamente o pedido em JS.\n\n" +
         "TOOLS DISPONÍVEIS:\n" +
         workspaceTools.map(tool => `- ${tool.example.trim()}`).join('\n');
 

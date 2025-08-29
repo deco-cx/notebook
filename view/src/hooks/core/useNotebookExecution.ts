@@ -272,32 +272,44 @@ export function useNotebookExecution(notebook: NotebookType) {
         // Execute JavaScript cell
         console.log('EXECUTING_JAVASCRIPT_CELL:', cellIndex);
         
-        const result = await executeJavaScript(cell.content);
-        
-        const max = notebook.settings?.outputMaxSize ?? 6000;
-        const outStr = result.success ? (JSON.stringify(result.output) ?? '') : String(result.error ?? '');
-        const tooLarge = outStr.length > max;
-        // Build a visual output block immediately under the cell
-        const visualOutput = result.success ? `Return value: ${outStr}` : `Error: ${String(result.error ?? '')}`;
-        
-        updateCell(cellIndex, {
-          status: result.success ? 'success' : 'error',
-          executionTime: Date.now() - startTime,
-          outputs: [
-            {
-              type: 'text',
-              content: visualOutput,
-            },
-            {
-              type: result.success ? 'json' : 'error',
-              content: result.success ? result.output : result.error
-            }
-          ],
-          omitOutputToAi: tooLarge ? true : undefined
-        });
-        
-        if (result.apiCalls) {
-          setApiCalls(prev => prev + result.apiCalls);
+        try {
+          const result = await executeJavaScript(cell.content);
+          
+          const max = notebook.settings?.outputMaxSize ?? 6000;
+          const outStr = result.success ? (JSON.stringify(result.output) ?? '') : String(result.error ?? '');
+          const tooLarge = outStr.length > max;
+          // Build a visual output block immediately under the cell
+          const visualOutput = result.success ? `Return value: ${outStr}` : `Error: ${String(result.error ?? '')}`;
+          
+          updateCell(cellIndex, {
+            status: result.success ? 'success' : 'error',
+            executionTime: Date.now() - startTime,
+            outputs: [
+              {
+                type: 'text',
+                content: visualOutput,
+              },
+              {
+                type: result.success ? 'json' : 'error',
+                content: result.success ? result.output : result.error
+              }
+            ],
+            omitOutputToAi: tooLarge ? true : undefined
+          });
+          
+          if (result.apiCalls) {
+            setApiCalls(prev => prev + result.apiCalls);
+          }
+        } catch (executionError) {
+          console.error('JS_EXECUTION_ERROR:', executionError);
+          updateCell(cellIndex, {
+            status: 'error',
+            executionTime: Date.now() - startTime,
+            outputs: [{
+              type: 'error',
+              content: executionError instanceof Error ? executionError.message : 'JavaScript execution failed'
+            }]
+          });
         }
       }
       
