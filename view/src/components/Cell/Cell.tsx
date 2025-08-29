@@ -4,14 +4,14 @@ import ReactMarkdown from 'react-markdown';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
-import type { Cell as CellType, CellType as CellTypeEnum } from '../../types/notebook';
+import type { Cell as CellInterface, CellType } from '../../types/notebook';
 import { ViewWrapper } from './ViewWrapper';
 import { getCompatibleViews, getDefaultView } from '../../utils/availableViews';
 
 interface CellProps {
-  cell: CellType;
+  cell: CellInterface;
   cellIndex: number;
-  onUpdate: (cell: CellType) => void;
+  onUpdate: (cell: CellInterface) => void;
   onRun: () => void;
   onDelete: () => void;
 }
@@ -45,7 +45,7 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
     });
   };
 
-  const handleTypeChange = (type: CellTypeEnum) => {
+  const handleTypeChange = (type: CellType) => {
     onUpdate({ 
       ...cell, 
       type,
@@ -108,7 +108,7 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
         {/* Type switcher */}
         <select 
           value={cell.type} 
-          onChange={(e) => handleTypeChange(e.target.value as CellTypeEnum)}
+          onChange={(e) => handleTypeChange(e.target.value as CellType)}
           className="bg-transparent text-xs border border-gray-600 px-2 py-1 text-white"
         >
           <option value="markdown">MARKDOWN</option>

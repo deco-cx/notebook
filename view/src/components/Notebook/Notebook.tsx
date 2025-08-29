@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Save, Cpu, Database, Zap, FileText, FolderOpen } from 'lucide-react';
-import { Cell } from '../Cell/Cell';
-import type { Notebook as NotebookType, Cell as CellType, CellType as CellTypeEnum } from '../../types/notebook';
+import { Cell as CellComponent } from '../Cell/Cell';
+import type { Notebook as NotebookType, Cell as CellInterface, CellType } from '../../types/notebook';
 import { client } from '../../lib/rpc';
 import { getDefaultView } from '../../utils/availableViews';
 
@@ -23,8 +23,8 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook, onOpenNote
     console.log('MANUAL_SAVE_TRIGGERED:', new Date().toLocaleTimeString());
   };
 
-  const addCell = (type: CellTypeEnum = 'markdown', content: string = '') => {
-    const newCell: CellType = {
+  const addCell = (type: CellType = 'markdown', content: string = '') => {
+    const newCell: CellInterface = {
       id: `cell_${Date.now()}`,
       type,
       content,
@@ -45,7 +45,7 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook, onOpenNote
     onNotebookChange(updatedNotebook);
   };
 
-  const updateCell = (cellIndex: number, updates: Partial<CellType>) => {
+  const updateCell = (cellIndex: number, updates: Partial<CellInterface>) => {
     const updatedCells = notebook.cells.map((cell, index) => 
       index === cellIndex ? { ...cell, ...updates } : cell
     );
@@ -411,7 +411,7 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook, onOpenNote
 
       {/* Cells */}
       {notebook.cells.map((cell, index) => (
-        <Cell
+        <CellComponent
           key={cell.id}
           cell={cell}
           cellIndex={index}
@@ -444,8 +444,8 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook, onOpenNote
 }
 
 // Add Cell Menu Component for testing all cell types
-function AddCellMenu({ onAddCell }: { onAddCell: (cell: { type: CellTypeEnum; content: string }) => void }) {
-  const cellTypes: { type: CellTypeEnum; label: string; example: string }[] = [
+function AddCellMenu({ onAddCell }: { onAddCell: (cell: { type: CellType; content: string }) => void }) {
+  const cellTypes: { type: CellType; label: string; example: string }[] = [
     {
       type: 'markdown',
       label: 'Markdown (TipTap)',
