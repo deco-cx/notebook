@@ -1,5 +1,5 @@
 import React from 'react';
-import { CellType, ViewApp } from '../types/notebook';
+import type { ViewApp, CellType } from '../types/notebook';
 import { TipTapView } from '../components/Views/TipTapView';
 import { MonacoView } from '../components/Views/MonacoView';
 import { IframeView } from '../components/Views/IframeView';
@@ -84,7 +84,7 @@ export const AVAILABLE_VIEWS: ViewApp[] = [
 // View matching logic
 export function getCompatibleViews(cellType: CellType): ViewApp[] {
   return AVAILABLE_VIEWS.filter(view => 
-    view.supportedTypes.includes(cellType)
+    view.supportedTypes.includes(cellType as any)
   );
 }
 

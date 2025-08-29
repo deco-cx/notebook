@@ -1,5 +1,5 @@
 // Core types for the notebook application
-import React from 'react';
+import type React from 'react';
 
 export type CellType = 
   | "markdown" 
@@ -9,6 +9,17 @@ export type CellType =
   | "json"
   | "excalidraw"
   | "workflow";
+
+// Runtime array of cell types for validation
+export const CELL_TYPES = [
+  "markdown",
+  "javascript", 
+  "python",
+  "html",
+  "json",
+  "excalidraw",
+  "workflow"
+] as const;
 
 export interface Cell {
   id: string;
@@ -53,7 +64,7 @@ export interface ViewApp {
   name: string;
   description: string;
   icon: string;
-  supportedTypes: CellType[];
+  supportedTypes: readonly CellType[];
   component?: React.ComponentType<ViewProps>; // For component-based views
   iframeUrl?: string; // For iframe-based views (future)
   config?: {

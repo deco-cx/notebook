@@ -38,7 +38,426 @@ Read file: undefined
 
 ---
 
+Now I have a good understanding of the project. This is **Deco Studio** - a sophisticated notebook-based development environment that combines MCP (Model Context Protocol) server capabilities with a React frontend. It's essentially a coding notebook system with AI integration, similar to Jupyter but with more advanced features. Let me update the README to accurately reflect what this project actually is:
 
+---
+
+<details><summary>Edit file: /Users/lucis/deco/studio/README.md</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 3, lines removed: 7
+
+```diff
+@@ -1,11 +1,7 @@
+- # Deco MCP template app
++ # Deco Studio
+  
+- A full-stack template for building
+- [Model Context Protocol (MCP)](https://spec.modelcontextprotocol.io/) servers
+- with a modern React frontend.
++ A powerful notebook-based development environment that combines AI capabilities with interactive coding cells, built on the [Model Context Protocol (MCP)](https://spec.modelcontextprotocol.io/).
+  
+- This template provides a complete development environment where your MCP server
+- not only exposes tools and workflows to AI agents but also serves a beautiful
+- web interface built with React and Tailwind CSS.
++ Deco Studio provides a complete development platform where you can write code, visualize data, create workflows, and interact with AI - all within a unified notebook interface. The system serves as both an MCP server for AI agents and a rich web application for interactive development.
+  
+  ## 📝 Development History
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: /Users/lucis/deco/studio/README.md</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 8, lines removed: 11
+
+```diff
+@@ -13,15 +13,12 @@
+  ## ✨ Features
+  
+- - **🤖 MCP Server**: Cloudflare Workers-based server with typed tools and
+-   workflows
+- - **⚛️ React Frontend**: Modern React app with Vite, TanStack Router, and
+-   Tailwind CSS
+- - **🎨 UI Components**: Pre-configured shadcn/ui components for rapid
+-   development
+- - **🔧 Type Safety**: Full TypeScript support with auto-generated RPC client
+-   types
+- - **🚀 Hot Reload**: Live development with automatic rebuilding for both
+-   frontend and backend
+- - **☁️ Ready to Deploy**: One-command deployment to Cloudflare Workers
++ - **📓 Interactive Notebooks**: Create and manage notebooks with multiple cell types (JavaScript, Python, Markdown, HTML, JSON, Excalidraw, Workflows)
++ - **🤖 AI Integration**: Built-in AI tools and workflows powered by MCP protocol
++ - **🔧 Multi-Language Support**: Execute JavaScript, Python, and other languages in isolated cells
++ - **📊 Rich Visualizations**: Support for charts, diagrams, and interactive content through specialized view apps
++ - **🎨 Extensible Views**: Plugin system for custom cell renderers and editors (Monaco, TipTap, Excalidraw)
++ - **⚡ Real-time Execution**: Live code execution with output capture and error handling
++ - **🗄️ Persistent Storage**: SQLite-based storage for notebooks, cells, and execution history
++ - **☁️ Cloud-Native**: Built on Cloudflare Workers with edge deployment capabilities
+  
+  ## 🚀 Quick Start
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: /Users/lucis/deco/studio/README.md</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -27,5 +27,5 @@
+  
+  - Node.js ≥22.0.0
+- - [Deco CLI](https://deco.chat): `npm i -g deco-cli`
++ - [Deco CLI](https://deco.chat): `deno install -Ar -g -n deco jsr:@deco/cli`
+  
+  ### Setup
+```
+
+**Chunk 2**
+Lines added: 1, lines removed: 2
+
+```diff
+@@ -42,6 +42,5 @@
+  ```
+  
+- The server will start on `http://localhost:8787` serving both your MCP endpoints
+- and the React frontend.
++ The development server will start on `http://localhost:8787`, serving both the MCP endpoints and the notebook interface. The frontend development server runs on `http://localhost:4000` during development.
+  
+  ## 📁 Project Structure
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: /Users/lucis/deco/studio/README.md</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 20, lines removed: 7
+
+```diff
+@@ -47,12 +47,25 @@
+  
+  ```
+- ├── server/           # MCP Server (Cloudflare Workers + Deco runtime)
+- │   ├── main.ts      # Server entry point with tools & workflows
+- │   └── deco.gen.ts  # Auto-generated integration types
+- └── view/            # React Frontend (Vite + Tailwind CSS)
++ ├── server/                    # MCP Server (Cloudflare Workers + Deco runtime)
++ │   ├── main.ts               # Server entry point with tools & workflows
++ │   ├── schema.ts             # Database schema definitions
++ │   ├── db.ts                 # Database connection and utilities
++ │   ├── tools/                # Domain-organized MCP tools
++ │   │   ├── notebook.ts       # Notebook management tools
++ │   │   ├── todos.ts          # Todo/task management tools
++ │   │   └── user.ts           # User management tools
++ │   ├── workflows/            # MCP workflows
++ │   └── deco.gen.ts           # Auto-generated integration types
++ └── view/                     # React Frontend (Vite + Tailwind CSS)
+      ├── src/
+-     │   ├── lib/rpc.ts    # Typed RPC client for server communication
+-     │   ├── routes/       # TanStack Router routes
+-     │   └── components/   # UI components with Tailwind CSS
++     │   ├── components/
++     │   │   ├── Notebook/     # Main notebook interface
++     │   │   ├── Cell/         # Cell rendering and editing
++     │   │   ├── Views/        # Specialized view apps (Monaco, TipTap, etc.)
++     │   │   └── ui/           # shadcn/ui components
++     │   ├── hooks/            # TanStack Query hooks for RPC calls
++     │   ├── lib/rpc.ts        # Typed RPC client for server communication
++     │   ├── types/            # TypeScript type definitions
++     │   └── utils/            # Utility functions and configurations
+      └── package.json
+  ```
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: /Users/lucis/deco/studio/README.md</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 3, lines removed: 2
+
+```diff
+@@ -73,8 +73,9 @@
+  ## 🛠️ Development Workflow
+  
+- - **`npm run dev`** - Start development with hot reload
++ - **`npm run dev`** - Start development with hot reload (server + frontend)
+  - **`npm run gen`** - Generate types for external integrations
+  - **`npm run gen:self`** - Generate types for your own tools/workflows
+- - **`npm run deploy`** - Deploy to production
++ - **`npm run db:generate`** - Generate database migrations from schema changes
++ - **`npm run deploy`** - Deploy to production on Cloudflare Workers
+  
+  ## 🔗 Frontend ↔ Server Communication
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: /Users/lucis/deco/studio/README.md</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 32, lines removed: 8
+
+```diff
+@@ -79,13 +79,37 @@
+  - **`npm run deploy`** - Deploy to production on Cloudflare Workers
+  
+- ## 🔗 Frontend ↔ Server Communication
+- 
+- The template includes a fully-typed RPC client that connects your React frontend
+- to your MCP server:
+- 
++ ## 🔗 Architecture & Communication
++ 
++ Deco Studio uses a sophisticated architecture that combines notebook management, AI integration, and extensible view systems:
++ 
++ ### Cell Types & Execution
++ - **JavaScript/Python**: Code cells with live execution and output capture
++ - **Markdown**: Rich text editing with TipTap editor
++ - **HTML/JSON**: Structured content with syntax highlighting
++ - **Excalidraw**: Interactive diagram and drawing capabilities
++ - **Workflow**: MCP workflow integration for AI-powered automation
++ 
++ ### View Apps System
++ The notebook supports pluggable view applications for different cell types:
++ ```typescript
++ // Example: Monaco editor for code cells
++ const monacoView: ViewApp = {
++   id: "monaco",
++   name: "Code Editor",
++   supportedTypes: ["javascript", "python", "json"],
++   component: MonacoView,
++   config: { canEdit: true, canExecute: true }
++ };
++ ```
++ 
++ ### RPC Communication
++ Fully-typed RPC client connects the React frontend to MCP server tools:
+  ```typescript
+- // Typed calls to your server tools and workflows
+- const result = await client.MY_TOOL({ input: "data" });
+- const workflowResult = await client.MY_WORKFLOW({ input: "data" });
++ // Notebook operations
++ const notebooks = await client.LIST_NOTEBOOKS();
++ await client.CREATE_CELL({ notebookId, type: "javascript", content: "console.log('Hello!')" });
++ 
++ // Tool execution
++ const result = await client.EXECUTE_TOOL({ toolName: "MY_TOOL", args: { input: "data" } });
+  ```
+  
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: /Users/lucis/deco/studio/README.md</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 44, lines removed: 5
+
+```diff
+@@ -112,17 +112,56 @@
+  // Tool execution
+  const result = await client.EXECUTE_TOOL({ toolName: "MY_TOOL", args: { input: "data" } });
++ ```
++ 
++ ## 🚀 Key Use Cases
++ 
++ - **Interactive Development**: Write and execute code in multiple languages with live feedback
++ - **AI-Powered Workflows**: Create sophisticated automation using MCP tools and AI integration
++ - **Data Analysis**: Combine code execution, visualizations, and rich documentation in one place
++ - **Collaborative Notebooks**: Share and collaborate on interactive documents with embedded code and outputs
++ - **Prototyping**: Rapidly prototype ideas with mixed content types (code, diagrams, documentation)
++ 
++ ## 🔧 Extending the System
++ 
++ ### Adding New Cell Types
++ ```typescript
++ // Define new cell type in types/notebook.ts
++ export type CellType = "markdown" | "javascript" | "python" | "mycustomtype";
++ 
++ // Create corresponding view app
++ const customView: ViewApp = {
++   id: "custom",
++   name: "Custom View",
++   supportedTypes: ["mycustomtype"],
++   component: MyCustomComponent
++ };
++ ```
++ 
++ ### Creating MCP Tools
++ ```typescript
++ // Add tools in server/tools/ directory
++ export const createMyTool = (env: Env) => createTool({
++   id: "MY_TOOL",
++   description: "Custom tool description",
++   inputSchema: z.object({ input: z.string() }),
++   outputSchema: z.object({ result: z.string() }),
++   execute: async ({ context }) => {
++     // Tool implementation
++     return { result: `Processed: ${context.input}` };
++   }
++ });
+  ```
+  
+  ## 📖 Learn More
+  
+- This template is built for deploying primarily on top of the
+- [Deco platform](https://deco.chat/about) which can be found at the
+- [deco-cx/chat](https://github.com/deco-cx/chat) repository.
++ Deco Studio is built on the [Deco platform](https://deco.chat/about) - a comprehensive system for building AI-powered applications with MCP integration.
+  
+- Documentation can be found at [https://docs.deco.page](https://docs.deco.page)
++ - **Platform Repository**: [deco-cx/chat](https://github.com/deco-cx/chat)
++ - **Documentation**: [https://docs.deco.page](https://docs.deco.page)
++ - **MCP Protocol**: [Model Context Protocol Specification](https://spec.modelcontextprotocol.io/)
+  
+  ---
+  
+- **Ready to build your next MCP server with a beautiful frontend?
++ **Ready to build powerful notebook-based applications with AI integration?
+  [Get started now!](https://deco.chat)**
+  
+```
+
+</details>
+
+---
+
+Now let me also update the HTML title and description to match the updated README:
+
+---
+
+Read file: undefined
+
+---
+
+<details><summary>Edit file: /Users/lucis/deco/studio/view/index.html</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -30,8 +30,8 @@
+      <meta
+        name="description"
+-       content="React + Tailwind View"
++       content="A powerful notebook-based development environment that combines AI capabilities with interactive coding cells, built on the Model Context Protocol."
+      />
+      <link rel="manifest" href="/manifest.json" />
+-     <title>React + Tailwind View</title>
++     <title>Deco Studio - AI-Powered Notebook Environment</title>
+    </head>
+    <body>
+```
+
+</details>
+
+---
+
+Let me also check and update the manifest.json file:
+
+---
+
+Read file: undefined
+
+---
+
+<details><summary>Edit file: /Users/lucis/deco/studio/view/public/manifest.json</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -1,5 +1,5 @@
+  {
+-   "short_name": "Deco App",
+-   "name": "Deco Create Application",
++   "short_name": "Deco Studio",
++   "name": "Deco Studio - AI-Powered Notebook Environment",
+    "icons": [
+      {
+```
+
+</details>
+
+---
+
+Perfect! I've successfully updated the README.md and related files to accurately reflect what Deco Studio actually is. Here's a summary of the changes I made:
+
+## Updated README.md
+
+**Key Changes:**
+1. **Project Name & Description**: Changed from "Deco MCP template app" to "Deco Studio" - a powerful notebook-based development environment
+2. **Features Section**: Updated to highlight notebook-specific features like:
+   - Interactive notebooks with multiple cell types
+   - Multi-language support (JavaScript, Python, etc.)
+   - Rich visualizations and extensible view system
+   - Real-time execution with output capture
+   - Persistent SQLite storage
+
+3. **Project Structure**: Updated to show the actual structure with:
+   - Server tools organized by domain (notebook.ts, todos.ts, user.ts)
+   - View components for notebook interface
+   - Database schema and utilities
+
+4. **Architecture Section**: Added comprehensive explanation of:
+   - Cell types and execution model
+   - View apps system with pluggable components
+   - RPC communication patterns specific to notebooks
+
+5. **Use Cases**: Added relevant use cases like interactive development, AI-powered workflows, data analysis, and collaborative notebooks
+
+6. **Extension Guide**: Added examples for creating new cell types and MCP tools
+
+## Updated HTML & Manifest
+
+**SEO & Metadata Updates:**
+- **Title**: Changed to "Deco Studio - AI-Powered Notebook Environment"
+- **Meta Description**: Updated to accurately describe the notebook-based development environment
+- **PWA Manifest**: Updated app name and short name to "Deco Studio"
+
+The README now accurately represents Deco Studio as a sophisticated notebook-based development environment that combines:
+- Interactive coding cells (JavaScript, Python, Markdown, HTML, JSON, Excalidraw, Workflows)
+- AI integration through MCP protocol
+- Extensible view system for different content types
+- Real-time execution and output capture
+- Persistent storage and collaboration features
+
+This is much more accurate than the previous generic "MCP template app" description and properly showcases the unique capabilities of this notebook-based development platform.
 
 ---
 
