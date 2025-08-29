@@ -32,13 +32,16 @@ export function useNotebooks(): UseNotebooksReturn {
     window.history.replaceState({}, '', url.toString());
   };
 
-  // Load notebooks from localStorage
+  // Load notebooks from localStorage (does not update state, just returns data)
   const loadNotebooks = () => {
     try {
       const stored = localStorage.getItem('notebooks');
       if (stored) {
         const parsedNotebooks = JSON.parse(stored);
-        setNotebooks(parsedNotebooks);
+        console.log('LOADED_FROM_LOCALSTORAGE:', Object.keys(parsedNotebooks).map(id => ({
+          id,
+          cellCount: parsedNotebooks[id].cells.length
+        })));
         return parsedNotebooks;
       }
     } catch (error) {
@@ -143,39 +146,22 @@ export function useNotebooks(): UseNotebooksReturn {
   };
 
   const updateCurrentNotebook = (updatedNotebook: NotebookType) => {
-    const existing = notebooks[updatedNotebook.id];
-    // Merge against latest existing snapshot to avoid overwriting newer cells
-    let merged: NotebookType;
-    if (existing) {
-      const incomingById = new Map<string, any>(
-        (updatedNotebook.cells || []).map((c: any) => [c.id, c])
-      );
-      const mergedCells = (existing.cells || []).map((cell: any) => {
-        const incoming = incomingById.get(cell.id);
-        return incoming ? { ...cell, ...incoming } : cell;
-      });
-      // If incoming has new cells we don't know where to place, append at end
-      for (const [id, inc] of incomingById.entries()) {
-        if (!mergedCells.find((c: any) => c.id === id)) {
-          mergedCells.push(inc);
-        }
-      }
-      merged = {
-        ...existing,
-        ...updatedNotebook,
-        cells: mergedCells,
-        updatedAt: new Date().toISOString(),
-      };
-    } else {
-      merged = { ...updatedNotebook, updatedAt: new Date().toISOString() };
-    }
+    // Always use the incoming notebook directly - no merging
+    // This ensures deletions, additions, and updates all work correctly
+    const merged = {
+      ...updatedNotebook,
+      updatedAt: new Date().toISOString(),
+    };
 
     const nextNotebooks = {
       ...notebooks,
       [merged.id]: merged,
     };
-
+    
+    // Update state with new notebooks
     setNotebooks(nextNotebooks);
+    
+    // Save to localStorage
     saveNotebooks(nextNotebooks);
   };
 
@@ -202,6 +188,15 @@ export function useNotebooks(): UseNotebooksReturn {
 
   const currentNotebook = notebooks[currentNotebookId] || createDefaultNotebook();
   const availableNotebooks = Object.values(notebooks);
+
+  console.log('USE_NOTEBOOKS_RETURN:', {
+    currentNotebookId,
+    currentNotebookCells: currentNotebook.cells.length,
+    notebooksState: Object.keys(notebooks).map(id => ({
+      id,
+      cellCount: notebooks[id].cells.length
+    }))
+  });
 
   return {
     currentNotebook,

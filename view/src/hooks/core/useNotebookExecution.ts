@@ -180,71 +180,85 @@ export function useNotebookExecution(notebook: NotebookType) {
       if (cell.type === 'markdown') {
         // Run markdown cell through AI to generate new cells
         console.log('RUNNING_MARKDOWN_CELL:', cellIndex);
+        console.log('CELL_CONTENT:', cell.content);
         
         const max = notebook.settings?.outputMaxSize ?? 6000;
-        const result = await client.RUN_CELL({
-          notebook: {
-            cells: notebook.cells.map(c => ({
-              id: c.id,
-              type: c.type,
-              content: c.content,
-              omitOutputToAi: c.omitOutputToAi,
-              outputs: c.omitOutputToAi ? undefined : (c.outputs?.map(o => {
-                const serialized = typeof o.content === 'string' ? o.content : JSON.stringify(o.content ?? null);
-                const safe = (serialized ?? '').slice(0, max);
-                return { type: o.type, content: safe };
-              }) ?? undefined)
-            }))
-          },
-          cellToRun: cellIndex
-        });
+        
+        try {
+          const result = await client.RUN_CELL({
+            notebook: {
+              cells: notebook.cells.map(c => ({
+                id: c.id,
+                type: c.type,
+                content: c.content,
+                omitOutputToAi: c.omitOutputToAi,
+                outputs: c.omitOutputToAi ? undefined : (c.outputs?.map(o => {
+                  const serialized = typeof o.content === 'string' ? o.content : JSON.stringify(o.content ?? null);
+                  const safe = (serialized ?? '').slice(0, max);
+                  return { type: o.type, content: safe };
+                }) ?? undefined)
+              }))
+            },
+            cellToRun: cellIndex
+          });
 
-        console.log('RUN_CELL_RESULT:', result);
+          console.log('RUN_CELL_RESULT:', result);
 
-        if (result && result.cellsToAdd && result.cellsToAdd.length > 0) {
-          console.log('ADDING_NEW_CELLS:', result.cellsToAdd);
-          
-          // Add the generated cells after the current cell
-          const newCells = result.cellsToAdd.map((cellData: any) => ({
-            id: genId(6),
-            type: cellData.type,
-            content: cellData.content,
-            status: 'idle' as const
-          }));
+          if (result && result.cellsToAdd && result.cellsToAdd.length > 0) {
+            console.log('ADDING_NEW_CELLS:', result.cellsToAdd);
+            
+            // Add the generated cells after the current cell
+            const newCells = result.cellsToAdd.map((cellData: any) => ({
+              id: genId(6),
+              type: cellData.type,
+              content: cellData.content,
+              status: 'idle' as const
+            }));
 
-          const updatedCells = [
-            ...notebook.cells.slice(0, cellIndex + 1),
-            ...newCells,
-            ...notebook.cells.slice(cellIndex + 1)
-          ];
+            const updatedCells = [
+              ...notebook.cells.slice(0, cellIndex + 1),
+              ...newCells,
+              ...notebook.cells.slice(cellIndex + 1)
+            ];
 
-          // Update the current cell status in the updated cells array
-          const finalCells = updatedCells.map((cell, index) => 
-            index === cellIndex ? {
-              ...cell,
-              status: 'success' as const,
+            // Update the current cell status in the updated cells array
+            const finalCells = updatedCells.map((cell, index) => 
+              index === cellIndex ? {
+                ...cell,
+                status: 'success' as const,
+                executionTime: Date.now() - startTime,
+                outputs: [{
+                  type: 'text' as const,
+                  content: `Generated ${newCells.length} new cell(s)`
+                }]
+              } : cell
+            );
+
+            // Use onNotebookChange with merged semantics in hook
+            onNotebookChange({ ...notebook, cells: finalCells });
+          } else {
+            updateCell(cellIndex, {
+              status: 'error',
               executionTime: Date.now() - startTime,
               outputs: [{
-                type: 'text' as const,
-                content: `Generated ${newCells.length} new cell(s)`
+                type: 'text',
+                content: 'No cells generated'
               }]
-            } : cell
-          );
-
-          // Use onNotebookChange with merged semantics in hook
-          onNotebookChange({ ...notebook, cells: finalCells });
-        } else {
+            });
+          }
+          
+          setApiCalls(prev => prev + 1);
+        } catch (runCellError) {
+          console.error('RUN_CELL_API_ERROR:', runCellError);
           updateCell(cellIndex, {
             status: 'error',
             executionTime: Date.now() - startTime,
             outputs: [{
-              type: 'text',
-              content: 'No cells generated'
+              type: 'error',
+              content: runCellError instanceof Error ? runCellError.message : 'Failed to generate cells'
             }]
           });
         }
-        
-        setApiCalls(prev => prev + 1);
         
       } else if (cell.type === 'javascript') {
         // Execute JavaScript cell

@@ -1,5 +1,5 @@
  
-import { Play, Square, Trash2 } from 'lucide-react';
+import { Play, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
@@ -28,19 +28,7 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
   const keyboard = useCellKeyboard(onRun, content.handleTypeChange);
   const textarea = useCellTextarea(cell.content);
 
-  const formatExecutionTime = (time?: number) => {
-    if (!time) return 'N/A';
-    return `${time}ms`;
-  };
 
-  const getStatusColor = () => {
-    switch (cell.status) {
-      case 'running': return 'status-running';
-      case 'success': return 'status-success';
-      case 'error': return 'status-error';
-      default: return 'status-idle';
-    }
-  };
 
   if (!view.selectedView) {
     return <div className="text-red-400 p-4">No compatible view found for cell type: {cell.type}</div>;
@@ -61,11 +49,16 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
       {/* Markdown Cell - Clean, minimal styling */}
       {cell.type === 'markdown' && (
         <div className="py-2 relative">
-          {/* Hover controls for markdown */}
-          <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+          {/* Controls for markdown - always visible for debugging */}
+          <div className="absolute right-0 top-0 opacity-100 flex items-center gap-1 z-20 bg-background/80 backdrop-blur-sm rounded-md p-1">
             {view.selectedView.config?.canExecute && (
               <button
-                onClick={onRun}
+                onClick={(e) => {
+                  console.log('RUN_BUTTON_CLICKED_MARKDOWN:', cellIndex);
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onRun();
+                }}
                 disabled={cell.status === 'running'}
                 className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground border border-border rounded hover:border-muted-foreground transition-colors"
                 title="Run cell (Cmd+Enter)"
@@ -83,7 +76,12 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
               </button>
             )}
             <button
-              onClick={onDelete}
+              onClick={(e) => {
+                console.log('DELETE_BUTTON_CLICKED_MARKDOWN:', cellIndex);
+                e.preventDefault();
+                e.stopPropagation();
+                onDelete();
+              }}
               className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-destructive border border-border rounded hover:border-destructive transition-colors"
               title="Delete cell"
             >
@@ -155,7 +153,12 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
               
               {view.selectedView.config?.canExecute && (
                 <button
-                  onClick={onRun}
+                  onClick={(e) => {
+                    console.log('RUN_BUTTON_CLICKED_CODE:', cellIndex);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onRun();
+                  }}
                   disabled={cell.status === 'running'}
                   className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#d0ec1a] text-[#07401a] rounded-lg text-sm font-normal hover:bg-[#c5e016] transition-colors disabled:opacity-50"
                 >
@@ -175,6 +178,20 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
                   )}
                 </button>
               )}
+              
+              {/* Delete button for code cells */}
+              <button
+                onClick={(e) => {
+                  console.log('DELETE_BUTTON_CLICKED_CODE:', cellIndex);
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-destructive border border-border rounded hover:border-destructive transition-colors"
+                title="Delete cell"
+              >
+                <Trash2 size={12} />
+              </button>
             </div>
           </div>
 

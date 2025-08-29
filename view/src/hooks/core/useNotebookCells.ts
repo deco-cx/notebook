@@ -41,13 +41,18 @@ export function useNotebookCells(
   };
 
   const deleteCell = (cellIndex: number) => {
+    console.log('DELETE_CELL_CALLED:', cellIndex, 'Total cells:', notebook.cells.length);
+    
     if (notebook.cells.length <= 1) {
       // Don't delete the last cell, just clear its content
+      console.log('CLEARING_LAST_CELL_CONTENT');
       updateCell(cellIndex, { content: '', outputs: [], status: 'idle' });
       return;
     }
 
+    console.log('DELETING_CELL_AT_INDEX:', cellIndex);
     const updatedCells = notebook.cells.filter((_, index) => index !== cellIndex);
+    console.log('NEW_CELLS_COUNT:', updatedCells.length);
     
     onNotebookChange({
       ...notebook,

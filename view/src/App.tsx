@@ -23,6 +23,7 @@ export function App() {
   };
 
   console.log('APP_RENDER: notebook has', currentNotebook.cells.length, 'cells');
+  console.log('CURRENT_NOTEBOOK_CELLS:', currentNotebook.cells.map(c => ({ id: c.id, type: c.type })));
 
   return (
     <div className="[--header-height:calc(--spacing(14))]">
