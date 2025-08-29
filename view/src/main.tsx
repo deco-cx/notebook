@@ -7,6 +7,10 @@ import {
   RouterProvider,
 } from "@tanstack/react-router";
 import HomePage from "./routes/home.tsx";
+import DailyNotePage from "./routes/daily-note.tsx";
+import NotesPage from "./routes/notes.tsx";
+import WorkflowsPage from "./routes/workflows.tsx";
+import AppsPage from "./routes/apps.tsx";
 import { Toaster } from "sonner";
 
 import "./styles.css";
@@ -18,6 +22,10 @@ const rootRoute = createRootRoute({
 
 const routeTree = rootRoute.addChildren([
   HomePage(rootRoute),
+  DailyNotePage(rootRoute),
+  NotesPage(rootRoute),
+  WorkflowsPage(rootRoute),
+  AppsPage(rootRoute),
 ]);
 
 const queryClient = new QueryClient();
