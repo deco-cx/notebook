@@ -54,34 +54,6 @@
 
   /* Legacy support for existing components */
   --font-mono: 'Fira Code', 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
-
-  /* Spacing scale (used by legacy components) */
-  --spacing-xxs: 2px;
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 12px;
-  --spacing-lg: 16px;
-  --spacing-xl: 24px;
-  --spacing-xxl: 32px;
-
-  /* Legacy color aliases mapped to tokens */
-  --bg-primary: var(--card);
-  --bg-secondary: var(--muted);
-  --bg-tertiary: var(--secondary);
-  --bg-panel: var(--card);
-
-  --text-primary: var(--foreground);
-  --text-secondary: var(--primary);
-  --text-muted: var(--muted-foreground);
-  --text-white: oklch(98.5% 0.001 106.423);
-
-  --border-main: var(--ring);
-  --border-secondary: var(--border);
-
-  --accent-warning: var(--warning);
-  --accent-success: var(--success);
-  --accent-error: var(--destructive);
-  --accent-info: var(--chart-2);
 }
 
 /* Base styling */
@@ -103,9 +75,9 @@ body {
 
 /* Modern layout styles */
 .notebook-container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: var(--spacing-xl) var(--spacing-lg);
+  max-width: none;
+  margin: 0;
+  padding: 0;
   background: transparent;
   min-height: auto;
 }
@@ -234,27 +206,6 @@ body {
   font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
-}
-
-/* High-contrast select used in Cell header for view selection */
-.cell-select {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-secondary);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-family: var(--font-mono);
-  letter-spacing: 0.5px;
-}
-
-.cell-select:focus {
-  outline: none;
-  border-color: var(--border-main);
-  box-shadow: 0 0 6px rgba(0, 255, 65, 0.2);
-}
-
-.cell-select option {
-  background: var(--bg-primary);
-  color: var(--text-primary);
 }
 
 .cell-type {

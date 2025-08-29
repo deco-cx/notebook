@@ -16,7 +16,7 @@ export function ExcalidrawView({ cell, onContentChange, isFullscreen }: ViewProp
         }}
         initialData={excalidrawData.initialData}
         onChange={excalidrawData.handleChange}
-        theme="dark"
+        theme="light"
         name="notebook-drawing"
         UIOptions={
           isFullscreen

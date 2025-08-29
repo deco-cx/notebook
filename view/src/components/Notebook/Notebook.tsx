@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Save, Cpu, Database, Zap, FileText, FolderOpen } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Cell as CellComponent } from '../Cell/Cell';
 import type { Notebook as NotebookType, CellType } from '../../types/notebook';
 import { 
@@ -15,13 +15,10 @@ interface NotebookProps {
   onOpenNotebook?: () => void;
 }
 
-export function Notebook({ notebook, onNotebookChange, onNewNotebook, onOpenNotebook }: NotebookProps) {
-  const [memoryUsage] = useState('12.4MB');
-
+export function Notebook({ notebook, onNotebookChange }: NotebookProps) {
   // Use extracted hooks
   const execution = useNotebookExecution(notebook);
   const cells = useNotebookCells(notebook, onNotebookChange);
-  const persistence = useNotebookPersistence(notebook);
 
   // Cell operations are now handled by the cells hook
   const handleRunCell = (cellIndex: number) => {
@@ -31,96 +28,39 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook, onOpenNote
   // All execution logic moved to useNotebookExecution hook
 
   return (
-    <div className="notebook-container">
-      {/* Top Navigation */}
-      <div className="top-navigation">
-        <div className="nav-section">
-          <div className="nav-brand">
-            <FileText size={16} />
-            <span className="nav-title">BROWSER JUPYTER NOTEBOOK</span>
-          </div>
+    <div className="max-w-4xl mx-auto px-6 py-12">
+      {/* Date Header with Avatars - Notion style */}
+      <div className="flex items-center gap-2.5 mb-6">
+        <div className="text-sm font-normal text-muted-foreground uppercase tracking-wider">
+          {new Date().toLocaleDateString('en-US', { 
+            month: 'long', 
+            day: 'numeric', 
+            year: 'numeric' 
+          }).replace(',', 'TH,')}
         </div>
-        
-        <div className="nav-section">
-          {onNewNotebook && (
-            <button onClick={onNewNotebook} className="nav-button">
-              <Plus size={12} className="inline mr-1" />
-              NEW NOTEBOOK
-            </button>
-          )}
-          {onOpenNotebook && (
-            <button onClick={onOpenNotebook} className="nav-button">
-              <FolderOpen size={12} className="inline mr-1" />
-              OPEN
-            </button>
-          )}
-          <button onClick={persistence.saveNotebook} className="nav-button">
-            <Save size={12} className="inline mr-1" />
-            SAVE
-          </button>
+        <div className="flex items-center">
+          <div className="w-5 h-5 rounded-full bg-gradient-to-r from-purple-400 to-purple-600 border-2 border-purple-300 -mr-1.5 z-10" />
+          <div className="w-5 h-5 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 border-2 border-yellow-300" />
         </div>
       </div>
 
-      {/* Notebook Header */}
-      <div className="notebook-header">
-        <div className="notebook-title">
-          NOTEBOOK_INSTANCE_001: {notebook.path}
-        </div>
-        <div className="notebook-status">
-          <div className="toolbar-section">
-            <Cpu size={12} />
-            <span className="toolbar-label">EXEC_ENV:</span>
-            <span className="toolbar-value">READY</span>
-          </div>
-          <div className="toolbar-section">
-            <Database size={12} />
-            <span className="toolbar-label">API_CALLS:</span>
-            <span className="toolbar-value">{execution.apiCalls}/100</span>
-          </div>
-          <div className="toolbar-section">
-            <Zap size={12} />
-            <span className="toolbar-label">MEM:</span>
-            <span className="toolbar-value">{memoryUsage}</span>
-          </div>
-          <button onClick={persistence.saveNotebook} className="run-button">
-            <Save size={10} className="inline mr-1" />
-            SAVE
-          </button>
-        </div>
+      {/* Main Content */}
+      <div className="space-y-6 max-w-2xl">
+        {/* Cells */}
+        {notebook.cells.map((cell, index) => (
+          <CellComponent
+            key={cell.id}
+            cell={cell}
+            cellIndex={index}
+            onUpdate={(updatedCell) => cells.updateCellWithMetadata(index, updatedCell)}
+            onRun={() => handleRunCell(index)}
+            onDelete={() => cells.deleteCell(index)}
+          />
+        ))}
+
+        {/* Add Cell Menu */}
+        <AddCellMenu onAddCell={(cellData) => cells.addCell(cellData.type, cellData.content)} />
       </div>
-
-      {/* Toolbar */}
-      <div className="toolbar">
-        <div className="toolbar-section">
-          <span className="toolbar-label">TOOL_REGISTRY:</span>
-          <span className="toolbar-value">LOADED</span>
-        </div>
-        <div className="toolbar-section">
-          <span className="toolbar-label">CELLS:</span>
-          <span className="toolbar-value">{cells.cellCount}</span>
-        </div>
-        <div className="toolbar-section">
-          <span className="toolbar-label">STATUS:</span>
-          <span className={`toolbar-value ${execution.isExecuting ? 'text-warning' : 'text-success'}`}>
-            {execution.isExecuting ? 'EXECUTING' : 'IDLE'}
-          </span>
-        </div>
-      </div>
-
-      {/* Cells */}
-      {notebook.cells.map((cell, index) => (
-        <CellComponent
-          key={cell.id}
-          cell={cell}
-          cellIndex={index}
-          onUpdate={(updatedCell) => cells.updateCellWithMetadata(index, updatedCell)}
-          onRun={() => handleRunCell(index)}
-          onDelete={() => cells.deleteCell(index)}
-        />
-      ))}
-
-      {/* Add Cell Menu */}
-      <AddCellMenu onAddCell={(cellData) => cells.addCell(cellData.type, cellData.content)} />
     </div>
   );
 }
@@ -232,14 +172,14 @@ function AddCellMenu({ onAddCell }: { onAddCell: (cell: { type: CellType; conten
   ];
 
   return (
-    <div className="add-cell-menu flex flex-wrap gap-2 p-4 bg-gray-800 rounded-lg mb-4">
+    <div className="flex flex-wrap gap-2 mt-4">
       {cellTypes.map(({ type, label, example }) => (
         <button
           key={type}
           onClick={() => onAddCell({ type, content: example })}
-          className="px-3 py-2 bg-orange-500 text-black rounded font-mono text-xs hover:bg-orange-600 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg hover:border-muted-foreground transition-colors"
         >
-          <Plus size={12} className="inline mr-1" />
+          <Plus size={12} />
           {label}
         </button>
       ))}

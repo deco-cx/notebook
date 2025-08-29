@@ -62,7 +62,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuButton asChild>
                   <a
                     href={item.url}
-                    className="flex items-center gap-3 px-4 h-10 text-sm font-normal text-foreground hover:bg-accent hover:text-accent-foreground rounded-lg transition-colors"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-normal text-foreground hover:bg-accent hover:text-accent-foreground rounded-lg transition-colors"
                   >
                     <item.icon className="h-5 w-5 text-muted-foreground" />
                     {item.title}
@@ -77,7 +77,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuButton asChild>
                   <a
                     href="#"
-                    className="flex items-center gap-3 px-4 h-10 text-sm font-normal text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg border border-dashed border-border bg-muted/20 transition-colors"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-normal text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg border border-dashed border-border bg-muted/20 transition-colors"
                   >
                     <SquarePlus className="h-5 w-5 opacity-30" />
                     Add view
