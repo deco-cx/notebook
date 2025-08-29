@@ -1,71 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Notebook } from './components/Notebook/Notebook';
-import type { Notebook as NotebookType } from './types/notebook';
+import { NotebookSelector } from './components/NotebookSelector/NotebookSelector';
+import { useNotebooks } from './hooks/useNotebooks';
 
 export function App() {
-  const [notebook, setNotebook] = useState<NotebookType>(() => {
-    // Try to load notebook from localStorage
-    try {
-      const saved = localStorage.getItem('notebook');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (error) {
-      console.error('Failed to load notebook from localStorage:', error);
-    }
+  const [isNotebookSelectorOpen, setIsNotebookSelectorOpen] = useState(false);
+  
+  const {
+    currentNotebook,
+    availableNotebooks,
+    createNewNotebook,
+    switchToNotebook,
+    updateCurrentNotebook,
+    deleteNotebook
+  } = useNotebooks();
 
-    // Default notebook
-    return {
-      id: 'notebook_001',
-      path: '/2025/jan/27/index.json',
-      cells: [
-        {
-          id: 'cell_welcome',
-          type: 'markdown' as const,
-          content: '# Welcome to Browser Jupyter Notebook\n\nThis is a proof-of-concept notebook that runs entirely in your browser and can call Deco workspace tools.\n\n**Try this:**\n1. Run this cell to generate some JavaScript code\n2. Edit the generated code and run it\n3. Add new cells using the buttons below',
-          status: 'idle' as const
-        }
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-  });
-
-  const handleNotebookChange = (updatedNotebook: NotebookType) => {
-    console.log('APP_NOTEBOOK_CHANGE:', updatedNotebook.cells.length, 'cells');
-    console.log('APP_NOTEBOOK_CELLS:', updatedNotebook.cells.map(c => ({ id: c.id, type: c.type, content: c.content.substring(0, 50) + '...' })));
-    setNotebook(updatedNotebook);
+  const handleOpenNotebook = () => {
+    setIsNotebookSelectorOpen(true);
   };
 
-  const handleNewNotebook = () => {
-    const newNotebook: NotebookType = {
-      id: `notebook_${Date.now()}`,
-      path: `/2025/jan/27/notebook_${Date.now()}.json`,
-      cells: [
-        {
-          id: 'cell_new',
-          type: 'markdown',
-          content: '# New Notebook\n\nStart writing your notebook here...',
-          status: 'idle'
-        }
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    setNotebook(newNotebook);
-    
-    // Clear localStorage to start fresh
-    localStorage.removeItem('notebook');
-  };
-
-  console.log('APP_RENDER: notebook has', notebook.cells.length, 'cells');
+  console.log('APP_RENDER: notebook has', currentNotebook.cells.length, 'cells');
 
   return (
-    <Notebook 
-      notebook={notebook} 
-      onNotebookChange={handleNotebookChange}
-      onNewNotebook={handleNewNotebook}
-    />
+    <>
+      <Notebook 
+        notebook={currentNotebook} 
+        onNotebookChange={updateCurrentNotebook}
+        onNewNotebook={createNewNotebook}
+        onOpenNotebook={handleOpenNotebook}
+      />
+      
+      <NotebookSelector
+        isOpen={isNotebookSelectorOpen}
+        onClose={() => setIsNotebookSelectorOpen(false)}
+        notebooks={availableNotebooks}
+        currentNotebookId={currentNotebook.id}
+        onSelectNotebook={switchToNotebook}
+        onDeleteNotebook={deleteNotebook}
+      />
+    </>
   );
 }

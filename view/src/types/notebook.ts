@@ -1,14 +1,31 @@
 // Core types for the notebook application
+import React from 'react';
+
+export type CellType = 
+  | "markdown" 
+  | "javascript" 
+  | "python"
+  | "html"
+  | "json"
+  | "excalidraw"
+  | "workflow";
 
 export interface Cell {
   id: string;
-  type: "markdown" | "javascript";
+  type: CellType;
   content: string;
+  selectedView?: string; // ID of the currently selected view app
+  viewData?: Record<string, any>; // View-specific metadata/state
   outputs?: Array<{
-    type: "json" | "text" | "html";
+    type: "json" | "text" | "html" | "error";
     content: string;
   }>;
-  executionTime?: number;
+  metadata?: {
+    createdAt: string;
+    updatedAt: string;
+    executionTime?: number;
+  };
+  executionTime?: number; // Keep for backward compatibility
   status?: "idle" | "running" | "success" | "error";
 }
 
@@ -28,4 +45,30 @@ export interface ToolDefinition {
   inputSchema: string;
   outputSchema: string;
   example: string;
+}
+
+// View system types
+export interface ViewApp {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  supportedTypes: CellType[];
+  component?: React.ComponentType<ViewProps>; // For component-based views
+  iframeUrl?: string; // For iframe-based views (future)
+  config?: {
+    fullscreenCapable: boolean;
+    hasToolbar: boolean;
+    canEdit: boolean;
+    canExecute: boolean;
+  };
+}
+
+export interface ViewProps {
+  cell: Cell;
+  isFullscreen: boolean;
+  onContentChange: (content: string) => void;
+  onViewDataChange: (data: Record<string, any>) => void;
+  onToggleFullscreen: () => void;
+  onExecute?: () => void;
 }

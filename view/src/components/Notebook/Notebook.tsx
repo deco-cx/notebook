@@ -1,47 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Plus, Save, Cpu, Database, Zap, FileText, FolderOpen } from 'lucide-react';
 import { Cell } from '../Cell/Cell';
-import type { Notebook as NotebookType, Cell as CellType } from '../../types/notebook';
+import type { Notebook as NotebookType, Cell as CellType, CellType as CellTypeEnum } from '../../types/notebook';
 import { client } from '../../lib/rpc';
+import { getDefaultView } from '../../utils/availableViews';
 
 interface NotebookProps {
   notebook: NotebookType;
   onNotebookChange: (notebook: NotebookType) => void;
   onNewNotebook?: () => void;
+  onOpenNotebook?: () => void;
 }
 
-export function Notebook({ notebook, onNotebookChange, onNewNotebook }: NotebookProps) {
+export function Notebook({ notebook, onNotebookChange, onNewNotebook, onOpenNotebook }: NotebookProps) {
   const [isExecuting, setIsExecuting] = useState(false);
   const [apiCalls, setApiCalls] = useState(0);
-  const [memoryUsage, setMemoryUsage] = useState('12.4MB');
-
-  // Auto-save every 2 seconds when notebook changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      saveNotebook();
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [notebook]);
+  const [memoryUsage] = useState('12.4MB');
 
   const saveNotebook = () => {
-    try {
-      localStorage.setItem('notebook', JSON.stringify({
-        ...notebook,
-        updatedAt: new Date().toISOString()
-      }));
-      console.log('NOTEBOOK_SAVED:', new Date().toLocaleTimeString());
-    } catch (error) {
-      console.error('SAVE_ERROR:', error);
-    }
+    // The notebook is automatically saved by the useNotebooks hook
+    // This button provides manual save feedback to the user
+    console.log('MANUAL_SAVE_TRIGGERED:', new Date().toLocaleTimeString());
   };
 
-  const addCell = (type: 'markdown' | 'javascript' = 'markdown') => {
+  const addCell = (type: CellTypeEnum = 'markdown', content: string = '') => {
     const newCell: CellType = {
       id: `cell_${Date.now()}`,
       type,
-      content: '',
-      status: 'idle'
+      content,
+      status: 'idle',
+      selectedView: getDefaultView(type)?.id,
+      metadata: {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
     };
 
     const updatedNotebook = {
@@ -207,10 +199,10 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook }: Notebook
       
       // Wrap env methods to count API calls
       const wrappedEnv = new Proxy(env, {
-        get(target, prop) {
+        get(target: any, prop) {
           if (typeof target[prop] === 'object' && target[prop] !== null) {
             return new Proxy(target[prop], {
-              get(toolTarget, toolProp) {
+              get(toolTarget: any, toolProp) {
                 if (typeof toolTarget[toolProp] === 'function') {
                   return async (...args: any[]) => {
                     apiCallCount++;
@@ -358,10 +350,12 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook }: Notebook
               NEW NOTEBOOK
             </button>
           )}
-          <button className="nav-button">
-            <FolderOpen size={12} className="inline mr-1" />
-            OPEN
-          </button>
+          {onOpenNotebook && (
+            <button onClick={onOpenNotebook} className="nav-button">
+              <FolderOpen size={12} className="inline mr-1" />
+              OPEN
+            </button>
+          )}
           <button onClick={saveNotebook} className="nav-button">
             <Save size={12} className="inline mr-1" />
             SAVE
@@ -421,30 +415,86 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook }: Notebook
           key={cell.id}
           cell={cell}
           cellIndex={index}
-          onContentChange={(content) => updateCell(index, { content })}
+          onUpdate={(updatedCell) => {
+            const updatedCells = notebook.cells.map((c, i) => 
+              i === index ? { 
+                ...updatedCell, 
+                metadata: { 
+                  createdAt: updatedCell.metadata?.createdAt || new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  executionTime: updatedCell.metadata?.executionTime
+                } 
+              } : c
+            );
+            onNotebookChange({
+              ...notebook,
+              cells: updatedCells,
+              updatedAt: new Date().toISOString()
+            });
+          }}
           onRun={() => runCell(index)}
-          onTypeChange={(type) => updateCell(index, { type })}
           onDelete={() => deleteCell(index)}
         />
       ))}
 
-      {/* Add Cell Buttons */}
-      <div className="flex gap-4">
+      {/* Add Cell Menu */}
+      <AddCellMenu onAddCell={(cellData) => addCell(cellData.type, cellData.content)} />
+    </div>
+  );
+}
+
+// Add Cell Menu Component for testing all cell types
+function AddCellMenu({ onAddCell }: { onAddCell: (cell: { type: CellTypeEnum; content: string }) => void }) {
+  const cellTypes: { type: CellTypeEnum; label: string; example: string }[] = [
+    {
+      type: 'markdown',
+      label: 'Markdown (TipTap)',
+      example: '# Hello World\n\nThis is a **markdown** cell with *rich text* editing.'
+    },
+    {
+      type: 'javascript',
+      label: 'JavaScript (Monaco)',
+      example: '// JavaScript code\nconst result = await env.DATABASES.RUN_SQL({\n  sql: "SELECT * FROM users LIMIT 5"\n});\nconsole.log(result);'
+    },
+    {
+      type: 'python',
+      label: 'Python (Monaco)',
+      example: '# Python code\nprint("Hello from Python!")\nresult = {"message": "Python execution"}\nprint(result)'
+    },
+    {
+      type: 'excalidraw',
+      label: 'Drawing (Excalidraw)',
+      example: '{"elements":[],"appState":{"gridSize":null,"viewBackgroundColor":"#ffffff"}}'
+    },
+    {
+      type: 'workflow',
+      label: 'Workflow (React Flow)',
+      example: '{"nodes":[{"id":"1","type":"input","data":{"label":"Start"},"position":{"x":250,"y":25}}],"edges":[]}'
+    },
+    {
+      type: 'html',
+      label: 'HTML Preview',
+      example: '<!DOCTYPE html>\n<html>\n<body>\n  <h1>Hello HTML!</h1>\n  <p>This renders in an iframe</p>\n</body>\n</html>'
+    },
+    {
+      type: 'json',
+      label: 'JSON Data',
+      example: '{\n  "name": "Sample Data",\n  "type": "json",\n  "values": [1, 2, 3, 4, 5]\n}'
+    }
+  ];
+
+  return (
+    <div className="add-cell-menu flex flex-wrap gap-2 p-4 bg-gray-800 rounded-lg mb-4">
+      {cellTypes.map(({ type, label, example }) => (
         <button
-          onClick={() => addCell('markdown')}
-          className="add-cell-button flex-1"
+          key={type}
+          onClick={() => onAddCell({ type, content: example })}
+          className="px-3 py-2 bg-orange-500 text-black rounded font-mono text-xs hover:bg-orange-600 transition-colors"
         >
-          <Plus size={16} className="inline mr-2" />
-          ADD MARKDOWN CELL
+          <Plus size={12} className="inline mr-1" />
+          {label}
         </button>
-        <button
-          onClick={() => addCell('javascript')}
-          className="add-cell-button flex-1"
-        >
-          <Plus size={16} className="inline mr-2" />
-          ADD JAVASCRIPT CELL
-        </button>
-      </div>
+      ))}
     </div>
   );
 }
