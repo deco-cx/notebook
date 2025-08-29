@@ -2,14 +2,34 @@ import React from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
+import { Extension } from '@tiptap/core';
 import { Bold, Italic, List, Heading1, Heading2, Heading3 } from 'lucide-react';
 import type { ViewProps } from '../../types/notebook';
 
-export function TipTapView({ cell, onContentChange, isFullscreen }: ViewProps) {
+export function TipTapView({ cell, onContentChange, isFullscreen, onExecute }: ViewProps) {
+  const RunShortcut = React.useMemo(() => (
+    Extension.create({
+      name: 'runShortcut',
+      addKeyboardShortcuts() {
+        return {
+          'Mod-Enter': () => {
+            if (onExecute) onExecute();
+            return true;
+          },
+          'Shift-Enter': () => {
+            if (onExecute) onExecute();
+            return true;
+          },
+        };
+      },
+    })
+  ), [onExecute]);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Markdown
+      Markdown,
+      RunShortcut,
     ],
     content: cell.content,
     onUpdate: ({ editor }) => {

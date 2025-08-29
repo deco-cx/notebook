@@ -28,7 +28,7 @@ export const AVAILABLE_VIEWS: ViewApp[] = [
     name: "Monaco Editor",
     description: "Advanced code editor with syntax highlighting",
     icon: "code",
-    supportedTypes: ["javascript", "python", "json", "html"],
+    supportedTypes: ["javascript", "python", "json", "html", "excalidraw"],
     component: MonacoView,
     config: {
       fullscreenCapable: true,

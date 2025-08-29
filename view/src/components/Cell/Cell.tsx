@@ -104,6 +104,8 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
         <span className="cell-id">CELL_{cellIndex.toString().padStart(3, '0')}</span>
         <span className="ml-2 text-xs text-gray-400">ID:{cell.id}</span>
         <span className="cell-type">[{cell.type.toUpperCase()}]</span>
+        <span className="ml-2 text-xs text-gray-400">VIEW:</span>
+        <span className="ml-1 text-xs font-mono text-gray-200">{selectedView.name}</span>
         <span className={`status-indicator ${getStatusColor()}`}></span>
         {cell.omitOutputToAi && (
           <span className="ml-2 px-2 py-0.5 text-[10px] rounded bg-yellow-700 text-yellow-200">
@@ -111,23 +113,9 @@ export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) 
           </span>
         )}
         
-        {/* Type switcher */}
-        <select 
-          value={cell.type} 
-          onChange={(e) => handleTypeChange(e.target.value as CellType)}
-          className="bg-transparent text-xs border border-gray-600 px-2 py-1 text-white"
-        >
-          <option value="markdown">MARKDOWN</option>
-          <option value="javascript">JAVASCRIPT</option>
-          <option value="python">PYTHON</option>
-          <option value="html">HTML</option>
-          <option value="json">JSON</option>
-          <option value="excalidraw">EXCALIDRAW</option>
-          <option value="workflow">WORKFLOW</option>
-        </select>
 
         {/* View Selector */}
-        {compatibleViews.length > 1 && (
+        {compatibleViews.length > 0 && (
           <select
             value={selectedViewId}
             onChange={(e) => handleViewChange(e.target.value)}

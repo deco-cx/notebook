@@ -9,6 +9,7 @@ export function MonacoView({ cell, onContentChange, isFullscreen }: ViewProps) {
       case 'python': return 'python';
       case 'html': return 'html';
       case 'json': return 'json';
+      case 'excalidraw': return 'json';
       default: return 'plaintext';
     }
   };

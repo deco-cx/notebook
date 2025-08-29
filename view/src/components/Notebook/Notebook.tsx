@@ -147,11 +147,8 @@ export function Notebook({ notebook, onNotebookChange, onNewNotebook, onOpenNote
             } : cell
           );
 
-          onNotebookChange({
-            ...notebook,
-            cells: finalCells,
-            updatedAt: new Date().toISOString()
-          });
+          // Use onNotebookChange with merged semantics in hook
+          onNotebookChange({ ...notebook, cells: finalCells });
         } else {
           updateCell(cellIndex, {
             status: 'error',

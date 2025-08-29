@@ -143,16 +143,40 @@ export function useNotebooks(): UseNotebooksReturn {
   };
 
   const updateCurrentNotebook = (updatedNotebook: NotebookType) => {
-    const updatedNotebooks = {
-      ...notebooks,
-      [updatedNotebook.id]: {
-        ...updatedNotebook,
-        updatedAt: new Date().toISOString()
+    const existing = notebooks[updatedNotebook.id];
+    // Merge against latest existing snapshot to avoid overwriting newer cells
+    let merged: NotebookType;
+    if (existing) {
+      const incomingById = new Map<string, any>(
+        (updatedNotebook.cells || []).map((c: any) => [c.id, c])
+      );
+      const mergedCells = (existing.cells || []).map((cell: any) => {
+        const incoming = incomingById.get(cell.id);
+        return incoming ? { ...cell, ...incoming } : cell;
+      });
+      // If incoming has new cells we don't know where to place, append at end
+      for (const [id, inc] of incomingById.entries()) {
+        if (!mergedCells.find((c: any) => c.id === id)) {
+          mergedCells.push(inc);
+        }
       }
+      merged = {
+        ...existing,
+        ...updatedNotebook,
+        cells: mergedCells,
+        updatedAt: new Date().toISOString(),
+      };
+    } else {
+      merged = { ...updatedNotebook, updatedAt: new Date().toISOString() };
+    }
+
+    const nextNotebooks = {
+      ...notebooks,
+      [merged.id]: merged,
     };
 
-    setNotebooks(updatedNotebooks);
-    saveNotebooks(updatedNotebooks);
+    setNotebooks(nextNotebooks);
+    saveNotebooks(nextNotebooks);
   };
 
   const deleteNotebook = (notebookId: string) => {
