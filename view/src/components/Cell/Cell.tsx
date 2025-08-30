@@ -1,12 +1,23 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Play, Square, Trash2 } from 'lucide-react';
+ 
+import { Play, Trash2, MoreHorizontal } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
-import { oneDark } from '@codemirror/theme-one-dark';
-import type { Cell as CellInterface, CellType } from '../../types/notebook';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
+
+import type { Cell as CellInterface } from '../../types/notebook';
 import { ViewWrapper } from './ViewWrapper';
-import { getCompatibleViews, getDefaultView } from '../../utils/availableViews';
+import { 
+  useCellView, 
+  useCellContent, 
+  useCellKeyboard, 
+  useCellTextarea 
+} from '../../hooks';
 
 interface CellProps {
   cell: CellInterface;
@@ -17,207 +28,204 @@ interface CellProps {
 }
 
 export function Cell({ cell, cellIndex, onUpdate, onRun, onDelete }: CellProps) {
-  const [selectedViewId, setSelectedViewId] = useState(
-    cell.selectedView || getDefaultView(cell.type)?.id
-  );
-  const [renderMode, setRenderMode] = useState<'edit' | 'preview' | 'output'>('edit');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Use extracted hooks
+  const view = useCellView(cell, onUpdate);
+  const content = useCellContent(cell, onUpdate);
+  const keyboard = useCellKeyboard(onRun, content.handleTypeChange);
+  const textarea = useCellTextarea(cell.content);
 
-  const compatibleViews = getCompatibleViews(cell.type);
-  const selectedView = compatibleViews.find(v => v.id === selectedViewId);
 
-  const handleViewChange = (viewId: string) => {
-    setSelectedViewId(viewId);
-    onUpdate({ 
-      ...cell, 
-      selectedView: viewId 
-    });
-  };
 
-  const handleContentChange = (content: string) => {
-    onUpdate({ ...cell, content });
-  };
-
-  const handleViewDataChange = (viewData: Record<string, any>) => {
-    onUpdate({ 
-      ...cell, 
-      viewData: { ...cell.viewData, ...viewData }
-    });
-  };
-
-  const handleTypeChange = (type: CellType) => {
-    onUpdate({ 
-      ...cell, 
-      type,
-      selectedView: getDefaultView(type)?.id 
-    });
-  };
-
-  // Auto-resize textarea
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
-    }
-  }, [cell.content]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Cmd+Enter or Ctrl+Enter to run
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault();
-      onRun();
-    }
-    // Ctrl+M for markdown
-    if (e.ctrlKey && e.key === 'm') {
-      e.preventDefault();
-      handleTypeChange('markdown');
-    }
-    // Ctrl+J for javascript
-    if (e.ctrlKey && e.key === 'j') {
-      e.preventDefault();
-      handleTypeChange('javascript');
-    }
-  };
-
-  const formatExecutionTime = (time?: number) => {
-    if (!time) return 'N/A';
-    return `${time}ms`;
-  };
-
-  const getStatusColor = () => {
-    switch (cell.status) {
-      case 'running': return 'status-running';
-      case 'success': return 'status-success';
-      case 'error': return 'status-error';
-      default: return 'status-idle';
-    }
-  };
-
-  if (!selectedView) {
+  if (!view.selectedView) {
     return <div className="text-red-400 p-4">No compatible view found for cell type: {cell.type}</div>;
   }
 
   return (
-    <div className="cell" data-cell-id={cellIndex.toString().padStart(3, '0')}>
-      {/* Cell Header */}
-      <div className="cell-header">
-        <span className="cell-id">CELL_{cellIndex.toString().padStart(3, '0')}</span>
-        <span className="ml-2 text-xs text-gray-400">ID:{cell.id}</span>
-        <span className="cell-type">[{cell.type.toUpperCase()}]</span>
-        <span className="ml-2 text-xs text-gray-400">VIEW:</span>
-        <span className="ml-1 text-xs font-mono text-gray-200">{selectedView.name}</span>
-        <span className={`status-indicator ${getStatusColor()}`}></span>
-        {cell.omitOutputToAi && (
-          <span className="ml-2 px-2 py-0.5 text-[10px] rounded bg-yellow-700 text-yellow-200">
-            AI OUTPUT OMITTED
-          </span>
-        )}
-        
-
-        {/* View Selector */}
-        {compatibleViews.length > 0 && (
-          <select
-            value={selectedViewId}
-            onChange={(e) => handleViewChange(e.target.value)}
-            className="bg-transparent text-xs border border-gray-600 px-2 py-1 text-white ml-2"
-          >
-            {compatibleViews.map(view => (
-              <option key={view.id} value={view.id}>
-                {view.name}
-              </option>
-            ))}
-          </select>
-        )}
-
-        {/* Legacy render mode switcher - keep for backward compatibility with old cells */}
-        {!selectedView.config?.canEdit && (
-          <div className="flex gap-1">
-            <button
-              onClick={() => setRenderMode('edit')}
-              className={`px-2 py-1 text-xs ${renderMode === 'edit' ? 'bg-construction text-black' : 'text-gray-400'}`}
-            >
-              EDIT
-            </button>
-            {cell.type === 'markdown' && (
-              <button
-                onClick={() => setRenderMode('preview')}
-                className={`px-2 py-1 text-xs ${renderMode === 'preview' ? 'bg-construction text-black' : 'text-gray-400'}`}
-              >
-                PREVIEW
-              </button>
-            )}
-            {cell.outputs && cell.outputs.length > 0 && (
-              <button
-                onClick={() => setRenderMode('output')}
-                className={`px-2 py-1 text-xs ${renderMode === 'output' ? 'bg-construction text-black' : 'text-gray-400'}`}
-              >
-                OUTPUT
-              </button>
-            )}
-          </div>
-        )}
-
-        <span className="exec-time">EXEC: {formatExecutionTime(cell.executionTime || cell.metadata?.executionTime)}</span>
-        
-        {selectedView.config?.canExecute && (
-          <button
-            onClick={onRun}
-            disabled={cell.status === 'running'}
-            className="run-button"
-          >
-            {cell.status === 'running' ? (
-              <>
-                <Square size={10} className="inline mr-1" />
-                RUNNING
-              </>
-            ) : (
-              <>
-                <Play size={10} className="inline mr-1" />
-                RUN
-              </>
-            )}
-          </button>
-        )}
-
-        <button
-          onClick={onDelete}
-          className="delete-button"
-          title="Delete cell"
-        >
-          <Trash2 size={10} className="inline mr-1" />
-          DELETE
-        </button>
+    <div className="group relative" data-cell-id={cellIndex.toString().padStart(3, '0')}>
+      {/* Drag Handle - appears on hover */}
+      <div className="absolute -left-7 top-2.5 opacity-0 group-hover:opacity-50 transition-opacity">
+        <div className="w-4 h-4 flex items-center justify-center">
+          <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+          <div className="w-1 h-1 bg-muted-foreground rounded-full ml-0.5"></div>
+          <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+          <div className="w-1 h-1 bg-muted-foreground rounded-full ml-0.5"></div>
+        </div>
       </div>
 
-      {/* Cell Content */}
-      <div className="cell-content">
-        {selectedView.config?.canEdit ? (
-          /* Use new view system */
-          <ViewWrapper
-            cell={cell}
-            selectedView={selectedView}
-            onContentChange={handleContentChange}
-            onViewDataChange={handleViewDataChange}
-            onExecute={onRun}
-          />
-        ) : (
-          /* Fallback to legacy rendering for views that don't support editing */
-          <>
-            {renderMode === 'edit' && (
-              <>
+      {/* Markdown Cell - Clean, minimal styling */}
+      {cell.type === 'markdown' && (
+        <div className="py-2 relative">
+          {/* Controls for markdown - always visible for debugging */}
+          <div className="absolute right-0 top-0 opacity-100 flex items-center gap-1 z-20 bg-background/80 backdrop-blur-sm rounded-md p-1">
+            {view.selectedView.config?.canExecute && (
+              <button
+                onClick={onRun}
+                disabled={cell.status === 'running'}
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground border border-border rounded hover:border-muted-foreground transition-colors"
+                title="Run cell (Cmd+Enter)"
+              >
+                {cell.status === 'running' ? (
+                  <div className="w-3 h-3 animate-spin">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                    </svg>
+                  </div>
+                ) : (
+                  <Play size={12} />
+                )}
+                Run
+              </button>
+            )}
+            <button
+              onClick={onDelete}
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-destructive border border-border rounded hover:border-destructive transition-colors"
+              title="Delete cell"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+
+          {view.selectedView.config?.canEdit ? (
+            <ViewWrapper
+              cell={cell}
+              selectedView={view.selectedView}
+              onContentChange={content.handleContentChange}
+              onViewDataChange={view.handleViewDataChange}
+              onExecute={onRun}
+            />
+          ) : (
+            <>
+              {view.renderMode === 'edit' ? (
+                <textarea
+                  ref={textarea.textareaRef}
+                  value={content.content}
+                  onChange={(e) => content.handleContentChange(e.target.value)}
+                  onKeyDown={keyboard.handleKeyDown}
+                  placeholder="Type your ideas here..."
+                  className="w-full resize-none border-none outline-none bg-transparent text-foreground placeholder:text-muted-foreground text-base leading-relaxed"
+                  style={{ minHeight: '1.5rem' }}
+                />
+              ) : (
+                <div className="prose prose-sm max-w-none">
+                  <ReactMarkdown>{content.content}</ReactMarkdown>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Code Cell - Container with header and run button */}
+      {cell.type !== 'markdown' && (
+        <div className="bg-secondary/50 border border-border rounded-xl overflow-hidden">
+          {/* Code Cell Header */}
+          <div className="flex items-center justify-between h-10 px-2 py-1.5">
+            <div className="flex items-center gap-2 px-1">
+              <div className="w-4 h-4 text-muted-foreground">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14,2 14,8 20,8"/>
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">
+                /{new Date().getFullYear()}/{new Date().toLocaleDateString('en', {month: 'short'}).toLowerCase()}/{new Date().getDate()}/tools/{cell.type}_cell.{cell.type === 'javascript' ? 'ts' : cell.type}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {cell.status === 'success' && cell.executionTime && (
+                <div className="flex items-center gap-1 px-1">
+                  <span className="text-xs text-muted-foreground">
+                    Executed at {new Date().toLocaleTimeString('en', { hour12: false, hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <div className="w-4 h-4 text-muted-foreground">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                      <polyline points="22,4 12,14.01 9,11.01"/>
+                    </svg>
+                  </div>
+                </div>
+              )}
+              
+              {view.selectedView.config?.canExecute && (
+                <button
+                  onClick={onRun}
+                  disabled={cell.status === 'running'}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#d0ec1a] text-[#07401a] rounded-lg text-sm font-normal hover:bg-[#c5e016] transition-colors disabled:opacity-50"
+                >
+                  <span>Run</span>
+                  {cell.status === 'running' ? (
+                    <div className="w-3.5 h-3.5 animate-spin">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                      </svg>
+                    </div>
+                  ) : (
+                    <div className="w-3.5 h-3.5">
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5,3 19,12 5,21"/>
+                      </svg>
+                    </div>
+                  )}
+                </button>
+              )}
+              
+              {/* View selector dropdown for code cells */}
+              {view.compatibleViews.length > 1 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground border border-border rounded hover:border-muted-foreground transition-colors"
+                      title="Change view"
+                    >
+                      <MoreHorizontal size={12} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {view.compatibleViews.map((v) => (
+                      <DropdownMenuItem
+                        key={v.id}
+                        onClick={() => view.handleViewChange(v.id)}
+                        className={v.id === view.selectedViewId ? 'bg-accent' : ''}
+                      >
+                        {v.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              
+              {/* Delete button for code cells */}
+              <button
+                onClick={onDelete}
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-destructive border border-border rounded hover:border-destructive transition-colors"
+                title="Delete cell"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          </div>
+
+          {/* Code Content */}
+          <div className="bg-background rounded-xl m-1 relative">
+            {view.selectedView.config?.canEdit ? (
+              <ViewWrapper
+                cell={cell}
+                selectedView={view.selectedView}
+                onContentChange={content.handleContentChange}
+                onViewDataChange={view.handleViewDataChange}
+                onExecute={onRun}
+              />
+            ) : (
+              <div className="p-4">
                 {cell.type === 'javascript' ? (
                   <CodeMirror
-                    value={cell.content}
-                    onChange={(value) => handleContentChange(value)}
-                    onKeyDown={handleKeyDown}
+                    value={content.content}
+                    onChange={(value) => content.handleContentChange(value)}
+                    onKeyDown={keyboard.handleKeyDown}
                     extensions={[javascript()]}
-                    theme={oneDark}
-                    placeholder="// Enter JavaScript code here...
 
-const result = await env.DATABASES.RUN_SQL({
-  sql: 'SELECT * FROM users LIMIT 10'
-});
-console.log(result);"
+                    placeholder="// Enter JavaScript code here..."
                     basicSetup={{
                       lineNumbers: true,
                       foldGutter: true,
@@ -230,53 +238,88 @@ console.log(result);"
                       highlightSelectionMatches: false,
                     }}
                     style={{
-                      fontSize: '13px',
-                      fontFamily: 'var(--font-mono)',
+                      fontSize: '15px',
+                      fontFamily: 'JetBrains Mono, monospace',
                     }}
                   />
                 ) : (
                   <textarea
-                    ref={textareaRef}
-                    value={cell.content}
-                    onChange={(e) => handleContentChange(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="# Enter markdown here...
-
-Describe what you want to do and run this cell to generate code."
-                    className="cell-editor"
+                    ref={textarea.textareaRef}
+                    value={content.content}
+                    onChange={(e) => content.handleContentChange(e.target.value)}
+                    onKeyDown={keyboard.handleKeyDown}
+                    placeholder={`Enter ${cell.type} code here...`}
+                    className="w-full resize-none border-none outline-none bg-transparent font-mono text-sm"
                   />
                 )}
-              </>
-            )}
-
-            {renderMode === 'preview' && cell.type === 'markdown' && (
-              <div className="markdown-preview">
-                <ReactMarkdown>{cell.content}</ReactMarkdown>
               </div>
             )}
-          </>
-        )}
 
-        {/* Always show outputs if available */}
-        {cell.outputs && cell.outputs.length > 0 && (
-          <div className="output-container">
-            <div className="output-header">
-              OUTPUT_BUFFER [{new Date().toLocaleTimeString()}]
-            </div>
-            {cell.outputs.map((output, index) => (
-              <pre 
-                key={index} 
-                className={`output-content ${output.type === 'error' ? 'output-error' : ''}`}
-              >
-                {typeof output.content === 'string' 
-                  ? output.content 
-                  : JSON.stringify(output.content, null, 2)
-                }
-              </pre>
-            ))}
+            {/* Expand button - bottom right */}
+            <button className="absolute bottom-2.5 right-2.5 w-9 h-9 bg-secondary border border-border rounded-xl flex items-center justify-center hover:bg-muted transition-colors">
+              <div className="w-4.5 h-4.5 text-muted-foreground">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="15,3 21,3 21,9"/>
+                  <polyline points="9,21 3,21 3,15"/>
+                  <line x1="21" y1="3" x2="14" y2="10"/>
+                  <line x1="3" y1="21" x2="10" y2="14"/>
+                </svg>
+              </div>
+            </button>
           </div>
-        )}
-      </div>
+
+          {/* Output Section */}
+          {cell.outputs && cell.outputs.length > 0 && (
+            <div className="p-2 space-y-2.5">
+              <div className="bg-background rounded-xl p-4 relative">
+                <div className="font-mono text-sm">
+                  {cell.outputs.map((output, index) => (
+                    <div key={index} className={output.type === 'error' ? 'text-destructive' : 'text-foreground'}>
+                      {typeof output.content === 'string' 
+                        ? output.content 
+                        : JSON.stringify(output.content, null, 2)
+                      }
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Output action buttons */}
+                <div className="absolute bottom-2.5 right-2.5 flex gap-1">
+                  <button className="w-9 h-9 bg-secondary border border-border rounded-xl flex items-center justify-center hover:bg-muted transition-colors">
+                    <div className="w-4.5 h-4.5 text-muted-foreground">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="15,3 21,3 21,9"/>
+                        <polyline points="9,21 3,21 3,15"/>
+                        <line x1="21" y1="3" x2="14" y2="10"/>
+                        <line x1="3" y1="21" x2="10" y2="14"/>
+                      </svg>
+                    </div>
+                  </button>
+                  <button className="w-9 h-9 bg-secondary border border-border rounded-xl flex items-center justify-center hover:bg-muted transition-colors">
+                    <div className="w-4.5 h-4.5 text-muted-foreground">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                      </svg>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Variable output if available */}
+              <div className="flex items-center justify-end gap-2">
+                <span className="text-sm font-medium text-muted-foreground">Variable</span>
+                <div className="bg-background px-2 py-1 rounded-xl">
+                  <span className="font-mono text-sm text-violet-500">
+                    ${cell.type}Response
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

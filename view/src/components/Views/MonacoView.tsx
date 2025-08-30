@@ -25,7 +25,7 @@ export function MonacoView({ cell, onContentChange, isFullscreen }: ViewProps) {
         language={getLanguage(cell.type)}
         value={cell.content}
         onChange={handleEditorChange}
-        theme="vs-dark"
+        theme="vs"
         options={{
           minimap: { enabled: isFullscreen },
           fontSize: 14,
@@ -64,8 +64,8 @@ export function MonacoView({ cell, onContentChange, isFullscreen }: ViewProps) {
         }}
         beforeMount={(monaco) => {
           // Configure custom theme for industrial look
-          monaco.editor.defineTheme('industrial-dark', {
-            base: 'vs-dark',
+          monaco.editor.defineTheme('industrial-light', {
+            base: 'vs',
             inherit: true,
             rules: [
               { token: 'comment', foreground: 'a0a0a0', fontStyle: 'italic' },
@@ -95,7 +95,7 @@ export function MonacoView({ cell, onContentChange, isFullscreen }: ViewProps) {
           });
           
           // Set the custom theme
-          monaco.editor.setTheme('industrial-dark');
+          monaco.editor.setTheme('industrial-light');
           
           // Add custom snippets for JavaScript cells
           if (cell.type === 'javascript') {
