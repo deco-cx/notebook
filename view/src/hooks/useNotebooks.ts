@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Notebook as NotebookType } from '../types/notebook';
 import { genId } from '../lib/utils';
 
@@ -152,17 +152,19 @@ export function useNotebooks(): UseNotebooksReturn {
       const defaultNotebook = createDefaultNotebook();
       const initialNotebooks = { [defaultNotebook.id]: defaultNotebook };
       setNotebooks(initialNotebooks);
+      setCurrentNotebookId(defaultNotebook.id);
       saveNotebooks(initialNotebooks);
+      updateUrl(defaultNotebook.id);
     } else {
       console.log('[INIT] Using loaded notebooks');
       setNotebooks(loadedNotebooks);
+      
+      // Set current notebook from URL or default
+      const targetNotebookId = loadedNotebooks[urlNotebookId] ? urlNotebookId : 'default';
+      console.log('[INIT] Setting current notebook to:', targetNotebookId);
+      setCurrentNotebookId(targetNotebookId);
+      updateUrl(targetNotebookId);
     }
-
-    // Set current notebook from URL or default
-    const targetNotebookId = loadedNotebooks[urlNotebookId] ? urlNotebookId : 'default';
-    console.log('[INIT] Setting current notebook to:', targetNotebookId);
-    setCurrentNotebookId(targetNotebookId);
-    updateUrl(targetNotebookId);
   }, []);
 
   // Listen for URL changes (back/forward navigation)
@@ -178,7 +180,7 @@ export function useNotebooks(): UseNotebooksReturn {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [notebooks, currentNotebookId]);
 
-  const createNewNotebook = () => {
+  const createNewNotebook = useCallback(() => {
     const newNotebook: NotebookType = {
       id: `notebook_${Date.now()}`,
       path: `/2025/jan/27/notebook_${Date.now()}.json`,
@@ -195,18 +197,21 @@ export function useNotebooks(): UseNotebooksReturn {
       settings: { outputMaxSize: 6000 }
     };
 
-    const updatedNotebooks = {
-      ...notebooks,
-      [newNotebook.id]: newNotebook
-    };
-
-    setNotebooks(updatedNotebooks);
-    saveNotebooks(updatedNotebooks);
+    // Use functional state update to ensure consistency
+    setNotebooks(prevNotebooks => {
+      const updatedNotebooks = {
+        ...prevNotebooks,
+        [newNotebook.id]: newNotebook
+      };
+      saveNotebooks(updatedNotebooks);
+      return updatedNotebooks;
+    });
+    
     setCurrentNotebookId(newNotebook.id);
     updateUrl(newNotebook.id);
-  };
+  }, [notebooks]);
 
-  const createNewNote = () => {
+  const createNewNote = useCallback(() => {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.toLocaleDateString('en', { month: 'short' }).toLowerCase();
@@ -238,25 +243,28 @@ export function useNotebooks(): UseNotebooksReturn {
       settings: { outputMaxSize: 6000 }
     };
 
-    const updatedNotebooks = {
-      ...notebooks,
-      [newNotebook.id]: newNotebook
-    };
-
-    setNotebooks(updatedNotebooks);
-    saveNotebooks(updatedNotebooks);
+    // Use functional state update to ensure consistency
+    setNotebooks(prevNotebooks => {
+      const updatedNotebooks = {
+        ...prevNotebooks,
+        [newNotebook.id]: newNotebook
+      };
+      saveNotebooks(updatedNotebooks);
+      return updatedNotebooks;
+    });
+    
     setCurrentNotebookId(newNotebook.id);
     updateUrl(newNotebook.id);
-  };
+  }, [notebooks]);
 
-  const switchToNotebook = (notebookId: string) => {
+  const switchToNotebook = useCallback((notebookId: string) => {
     if (notebooks[notebookId] && notebookId !== currentNotebookId) {
       setCurrentNotebookId(notebookId);
       updateUrl(notebookId);
     }
-  };
+  }, [notebooks, currentNotebookId]);
 
-  const updateCurrentNotebook = (updatedNotebook: NotebookType) => {
+  const updateCurrentNotebook = useCallback((updatedNotebook: NotebookType) => {
     console.log('[UPDATE_NOTEBOOK] Called with', updatedNotebook.cells.length, 'cells');
     console.trace('Call stack');
     
@@ -267,19 +275,18 @@ export function useNotebooks(): UseNotebooksReturn {
       updatedAt: new Date().toISOString(),
     };
 
-    const nextNotebooks = {
-      ...notebooks,
-      [merged.id]: merged,
-    };
-    
-    // Update state with new notebooks
-    setNotebooks(nextNotebooks);
-    
-    // Save to localStorage
-    saveNotebooks(nextNotebooks);
-  };
+    // Use functional state update to ensure consistency
+    setNotebooks(prevNotebooks => {
+      const nextNotebooks = {
+        ...prevNotebooks,
+        [merged.id]: merged,
+      };
+      saveNotebooks(nextNotebooks);
+      return nextNotebooks;
+    });
+  }, []);
 
-  const deleteNotebook = (notebookId: string) => {
+  const deleteNotebook = useCallback((notebookId: string) => {
     if (notebookId === 'default') {
       // Don't allow deleting the default notebook, just clear it
       // Clearing default notebook
@@ -300,21 +307,27 @@ export function useNotebooks(): UseNotebooksReturn {
       return;
     }
 
-    const updatedNotebooks = { ...notebooks };
-    delete updatedNotebooks[notebookId];
+    // Use functional state update to ensure consistency
+    setNotebooks(prevNotebooks => {
+      const updatedNotebooks = { ...prevNotebooks };
+      delete updatedNotebooks[notebookId];
+      saveNotebooks(updatedNotebooks);
+      return updatedNotebooks;
+    });
 
     // If deleting current notebook, switch to default
     if (notebookId === currentNotebookId) {
       setCurrentNotebookId('default');
       updateUrl('default');
     }
+  }, [notebooks, currentNotebookId, updateCurrentNotebook]);
 
-    setNotebooks(updatedNotebooks);
-    saveNotebooks(updatedNotebooks);
-  };
-
-  const currentNotebook = notebooks[currentNotebookId] || createDefaultNotebook();
-  const availableNotebooks = Object.values(notebooks);
+  // Use useMemo to ensure currentNotebook is properly computed when state changes
+  const currentNotebook = useMemo(() => {
+    return notebooks[currentNotebookId] || createDefaultNotebook();
+  }, [notebooks, currentNotebookId]);
+  
+  const availableNotebooks = useMemo(() => Object.values(notebooks), [notebooks]);
 
   return {
     currentNotebook,
