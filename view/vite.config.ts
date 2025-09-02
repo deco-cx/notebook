@@ -10,6 +10,16 @@ export default defineConfig({
   build: {
     outDir: "../server/view-build/",
     emptyOutDir: true,
+    // Reduce number of output files
+    cssCodeSplit: false,
+    assetsInlineLimit: 100000000,
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        // Merge all chunks (including dynamic imports) into a single bundle name
+        manualChunks: () => "bundle",
+      },
+    },
   },
   server: {
     strictPort: true,
