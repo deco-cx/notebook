@@ -3,14 +3,14 @@ name = "studio"
 main = "main.ts"
 compatibility_date = "2025-06-17"
 compatibility_flags = [ "nodejs_compat" ]
-scope = "lucis"
+scope = "muri-e-eu"
 
 [assets]
 directory = "./view-build"
 binding = "ASSETS"
 
 [deco]
-workspace = "lucis"
+workspace = "muri-e-eu"
 enable_workflows = true
 local = false
 

@@ -14,7 +14,7 @@
     "zod": "^3.24.3"
   },
   "devDependencies": {
-    "deco-cli": "^0.14.2",
+    "deco-cli": "^0.17.3",
     "drizzle-kit": "^0.31.4",
     "wrangler": "^4.28.0"
   }

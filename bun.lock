@@ -19,7 +19,7 @@
         "zod": "^3.24.3",
       },
       "devDependencies": {
-        "deco-cli": "^0.14.2",
+        "deco-cli": "^0.17.3",
         "drizzle-kit": "^0.31.4",
         "wrangler": "^4.28.0",
       },
@@ -1163,7 +1163,7 @@
 
     "debug": ["debug@4.4.1", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-KcKCqiftBJcZr++7ykoDIEwSa3XWowTfNPo92BYxjXiyYEVrUQh2aLyhxBCwww+heortUFxEJYcRzosstTEBYQ=="],
 
-    "deco-cli": ["deco-cli@0.14.2", "", { "dependencies": { "@deco-cx/warp-node": "0.3.16", "@modelcontextprotocol/sdk": "1.17.1", "@supabase/ssr": "^0.6.1", "@supabase/supabase-js": "^2.50.0", "chalk": "^5.3.0", "commander": "^12.0.0", "glob": "^10.3.10", "inquirer": "^9.2.15", "inquirer-search-checkbox": "^1.0.0", "inquirer-search-list": "^1.2.6", "jose": "^6.0.11", "json-schema-to-typescript": "^15.0.4", "prettier": "^3.6.2", "semver": "^7.6.0", "smol-toml": "^1.3.4", "ws": "^8.16.0", "zod": "^3.25.64" }, "bin": { "deco": "dist/cli.js" } }, "sha512-YxErPZB5OaekIg1nMCYReRJpdxbRS0Q6reJO5lBn4aLg0N94imOb5PBwBKxSoYnQ44n62gFZ9DC3CuKVv9lOEQ=="],
+    "deco-cli": ["deco-cli@0.17.3", "", { "dependencies": { "@deco-cx/warp-node": "0.3.16", "@modelcontextprotocol/sdk": "1.17.1", "@supabase/ssr": "^0.6.1", "@supabase/supabase-js": "^2.50.0", "chalk": "^5.3.0", "commander": "^12.0.0", "glob": "^10.3.10", "inquirer": "^9.2.15", "inquirer-search-checkbox": "^1.0.0", "inquirer-search-list": "^1.2.6", "jose": "^6.0.11", "json-schema-to-typescript": "^15.0.4", "object-hash": "^3.0.0", "prettier": "^3.6.2", "semver": "^7.6.0", "smol-toml": "^1.3.4", "ws": "^8.16.0", "zod": "^3.25.64" }, "bin": { "deco": "dist/cli.js" } }, "sha512-bxTiR+LbDz+iUy3TD6xVmAHx51ZGGpqLKyoCPfN7LMAeH+N3xu7wdqjPEUgWhMECmyopel+HZHqdafHc9t8KQA=="],
 
     "decode-named-character-reference": ["decode-named-character-reference@1.2.0", "", { "dependencies": { "character-entities": "^2.0.0" } }, "sha512-c6fcElNV6ShtZXmsgNgFFV5tVX2PaV4g+MOAkb8eXHvn6sryJBrZa9r0zV6+dtTyoCKxtDy5tyQ5ZwQuidtd+Q=="],
 
@@ -1648,6 +1648,8 @@
     "normalize-path": ["normalize-path@3.0.0", "", {}, "sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA=="],
 
     "object-assign": ["object-assign@4.1.1", "", {}, "sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg=="],
+
+    "object-hash": ["object-hash@3.0.0", "", {}, "sha512-RSn9F68PjH9HqtltsSnqYC1XXoWe9Bju5+213R98cNGttag9q9yAOTzdbsqvIa7aNm5WffBZFpWYr2aWrklWAw=="],
 
     "object-inspect": ["object-inspect@1.13.4", "", {}, "sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew=="],
 
