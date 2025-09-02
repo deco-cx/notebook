@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ViewProps } from '../../types/notebook';
 
 export function IframeView({ cell, isFullscreen }: ViewProps) {

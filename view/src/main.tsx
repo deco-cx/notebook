@@ -11,6 +11,7 @@ import DailyNotePage from "./routes/daily-note.tsx";
 import NotesPage from "./routes/notes.tsx";
 import WorkflowsPage from "./routes/workflows.tsx";
 import AppsPage from "./routes/apps.tsx";
+import ViewsHomePage from "./routes/views-home.tsx";
 import { Toaster } from "sonner";
 
 import "./styles.css";
@@ -27,6 +28,7 @@ const routeTree = rootRoute.addChildren([
   NotesPage(rootRoute),
   WorkflowsPage(rootRoute),
   AppsPage(rootRoute),
+  ViewsHomePage(rootRoute),
 ]);
 
 const queryClient = new QueryClient();
