@@ -11,11 +11,13 @@ import DailyNotePage from "./routes/daily-note.tsx";
 import NotesPage from "./routes/notes.tsx";
 import WorkflowsPage from "./routes/workflows.tsx";
 import AppsPage from "./routes/apps.tsx";
+import NotebookRoute from "./routes/notebook.tsx";
 import { Toaster } from "sonner";
 
 import "./styles.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { enableStorageDebug } from "./lib/storageDebug";
+import { AuthProvider } from "./hooks/useAuth";
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -27,6 +29,7 @@ const routeTree = rootRoute.addChildren([
   NotesPage(rootRoute),
   WorkflowsPage(rootRoute),
   AppsPage(rootRoute),
+  NotebookRoute(rootRoute),
 ]);
 
 const queryClient = new QueryClient();
@@ -156,8 +159,10 @@ if (rootElement && !rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-        <Toaster />
+        <AuthProvider>
+          <RouterProvider router={router} />
+          <Toaster />
+        </AuthProvider>
       </QueryClientProvider>
     </StrictMode>,
   );

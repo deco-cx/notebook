@@ -1,8 +1,8 @@
-# Deco Studio
+# Notebook
 
 A powerful notebook-based development environment that combines AI capabilities with interactive coding cells, built on the [Model Context Protocol (MCP)](https://spec.modelcontextprotocol.io/).
 
-Deco Studio provides a complete development platform where you can write code, visualize data, create workflows, and interact with AI - all within a unified notebook interface. The system serves as both an MCP server for AI agents and a rich web application for interactive development.
+Notebook provides a complete development platform where you can write code, visualize data, create workflows, and interact with AI - all within a unified notebook interface. The system serves as both an MCP server for AI agents and a rich web application for interactive development.
 
 ## 📝 Development History
 

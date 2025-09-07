@@ -7,6 +7,8 @@ import {
   useNotebookCells, 
   useNotebookPersistence 
 } from '../../hooks';
+import { useAuth } from '../../hooks/useAuth';
+import { useAuthModal } from '../../hooks/useAuthModal';
 
 interface NotebookProps {
   notebook: NotebookType;
@@ -16,12 +18,24 @@ interface NotebookProps {
 }
 
 export function Notebook({ notebook, onNotebookChange }: NotebookProps) {
+  const { isLoggedIn } = useAuth();
+  const { requireAuth } = useAuthModal();
+  
   // Use extracted hooks
   const execution = useNotebookExecution(notebook);
   const cells = useNotebookCells(notebook, onNotebookChange);
 
   // Cell operations are now handled by the cells hook
   const handleRunCell = (cellIndex: number) => {
+    const cell = notebook.cells[cellIndex];
+    
+    // Check if this requires AI (markdown cells)
+    if (cell?.type === 'markdown') {
+      if (!requireAuth('AI-powered code generation')) {
+        return;
+      }
+    }
+    
     execution.runCell(cellIndex, cells.updateCell, onNotebookChange);
   };
 

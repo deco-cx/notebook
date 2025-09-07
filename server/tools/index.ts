@@ -9,6 +9,7 @@ import { todoTools } from "./todos.ts";
 import { userTools } from "./user.ts";
 import { notebookTools } from "./notebook.ts";
 import { toolCallerTools } from "./toolCaller.ts";
+import { authTools } from "./auth.ts";
 
 // Export all tools from all domains
 export const tools = [
@@ -16,6 +17,7 @@ export const tools = [
   ...userTools,
   ...notebookTools,
   ...toolCallerTools,
+  ...authTools,
 ];
 
 // Re-export domain-specific tools for direct access if needed
@@ -23,3 +25,4 @@ export { todoTools } from "./todos.ts";
 export { userTools } from "./user.ts";
 export { notebookTools } from "./notebook.ts";
 export { toolCallerTools } from "./toolCaller.ts";
+export { authTools } from "./auth.ts";

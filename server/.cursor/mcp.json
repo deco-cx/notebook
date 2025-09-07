@@ -3,6 +3,10 @@
     "studio": {
       "type": "http",
       "url": "https://localhost-e222ea07.deco.host/mcp"
+    },
+    "notebook": {
+      "type": "http",
+      "url": "https://localhost-61030b45.deco.host/mcp"
     }
   }
 }
